@@ -76,7 +76,7 @@ export const documentChunks = pgTable('document_chunks', {
     documentId: uuid('document_id').references(() => documents.id),
     chunkIndex: integer('chunk_index').notNull(),
     content: text('content').notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small
+    embedding: vector('embedding', { dimensions: 768 }), // Gemini text-embedding-004
     metadata: jsonb('metadata').default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => [

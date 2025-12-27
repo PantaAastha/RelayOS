@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
   document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
   chunk_index INTEGER NOT NULL,
   content TEXT NOT NULL,
-  embedding vector(1536), -- OpenAI text-embedding-3-small
+  embedding vector(768), -- Gemini text-embedding-004
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now()
 );

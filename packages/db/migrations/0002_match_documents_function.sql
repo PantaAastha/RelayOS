@@ -2,7 +2,7 @@
 -- Run this in Supabase SQL Editor after the initial migration
 
 CREATE OR REPLACE FUNCTION match_documents(
-  query_embedding vector(1536),
+  query_embedding vector(768),
   match_tenant_id uuid,
   match_count int DEFAULT 5,
   match_threshold float DEFAULT 0.3

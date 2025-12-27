@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RelayOS Widget Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #1f2937;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #374151;
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status.ok {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        #apiStatus,
+        #tenantInfo {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 RelayOS Widget Test Page</h1>
+
+    <div class="card">
+        <h2>1. API Health Check</h2>
+        <p>Check if the API is running at <code>http://localhost:3001</code></p>
+        <button onclick="checkApiHealth()">Check API Health</button>
+        <div id="apiStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Tenant Info</h2>
+        <p>Verify the demo tenant exists in your database</p>
+        <button onclick="getTenantInfo()">Get Demo Tenant</button>
+        <div id="tenantInfo"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. Test Document Ingestion</h2>
+        <p>Ingest a sample FAQ document for testing</p>
+        <button onclick="ingestTestDocument()">Ingest Test Document</button>
+        <div id="ingestResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>4. Test Chat</h2>
+        <p>Send a test message to the API</p>
+        <input type="text" id="testMessage" value="What is your return policy?"
+            style="width: 300px; padding: 8px; margin-right: 10px;">
+        <button onclick="testChat()">Send Message</button>
+        <div id="chatResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>5. Widget Preview</h2>
+        <p>The RelayOS widget should appear in the bottom-right corner of this page.</p>
+        <p>If you don't see it, check the browser console for errors.</p>
+    </div>
+
+    <!-- RelayOS Widget Script -->
+    <script>
+        // Configuration
+        const API_URL = 'http://localhost:3001';
+        const TENANT_ID = 'demo'; // We'll get the actual UUID
+        let tenantUUID = null;
+
+        // Helper to display results
+        function showResult(elementId, success, message) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `
+        <div style="margin-top: 10px;">
+          <span class="status ${success ? 'ok' : 'error'}">${success ? '✓ Success' : '✗ Error'}</span>
+          <pre>${typeof message === 'object' ? JSON.stringify(message, null, 2) : message}</pre>
+        </div>
+      `;
+        }
+
+        // 1. Check API Health
+        async function checkApiHealth() {
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                const data = await res.json();
+                showResult('apiStatus', true, data);
+            } catch (err) {
+                showResult('apiStatus', false, err.message);
+            }
+        }
+
+        // 2. Get Tenant Info (we'll need to query Supabase directly for this)
+        async function getTenantInfo() {
+            // For now, we'll just verify the demo tenant exists by trying to search
+            showResult('tenantInfo', true, {
+                note: 'Run this query in Supabase SQL Editor to get your tenant UUID:',
+                query: "SELECT id, name, slug FROM tenants WHERE slug = 'demo';"
+            });
+        }
+
+        // 3. Ingest Test Document
+        async function ingestTestDocument() {
+            const testDoc = {
+                title: "Return Policy FAQ",
+                content: `
+# Return Policy
+
+## What is your return policy?
+We offer a 30-day return policy for all unused items in original packaging. 
+Simply contact our support team to initiate a return.
+
+## How do I initiate a return?
+To start a return:
+1. Log into your account
+2. Go to Order History
+3. Click "Return Item" next to the order
+4. Print the prepaid shipping label
+5. Drop off at any carrier location
+
+## When will I get my refund?
+Refunds are processed within 5-7 business days after we receive the returned item.
+You'll receive an email confirmation once the refund is issued.
+
+## Can I exchange an item?
+Yes! You can exchange for a different size or color. 
+Select "Exchange" instead of "Return" when initiating the process.
+
+## What items cannot be returned?
+The following items are final sale and cannot be returned:
+- Personalized items
+- Underwear and swimwear
+- Items marked as "Final Sale"
+- Gift cards
+        `,
+                docType: "faq",
+                sourceUrl: "https://example.com/returns"
+            };
+
+            // You'll need to replace this with the actual tenant UUID from your database
+            const promptForTenantId = prompt(
+                'Enter your tenant UUID (from Supabase query: SELECT id FROM tenants WHERE slug = \'demo\'):',
+                'paste-uuid-here'
+            );
+
+            if (!promptForTenantId || promptForTenantId === 'paste-uuid-here') {
+                showResult('ingestResult', false, 'Please enter a valid tenant UUID');
+                return;
+            }
+
+            tenantUUID = promptForTenantId;
+
+            try {
+                const res = await fetch(`${API_URL}/knowledge/documents`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant-ID': tenantUUID
+                    },
+                    body: JSON.stringify(testDoc)
+                });
+                const data = await res.json();
+                showResult('ingestResult', res.ok, data);
+            } catch (err) {
+                showResult('ingestResult', false, err.message);
+            }
+        }
+
+        // 4. Test Chat
+        async function testChat() {
+            const message = document.getElementById('testMessage').value;
+
+            if (!tenantUUID) {
+                tenantUUID = prompt(
+                    'Enter your tenant UUID:',
+                    'paste-uuid-here'
+                );
+            }
+
+            if (!tenantUUID || tenantUUID === 'paste-uuid-here') {
+                showResult('chatResult', false, 'Please enter a valid tenant UUID');
+                return;
+            }
+
+            showResult('chatResult', true, 'Sending message...');
+
+            try {
+                const res = await fetch(`${API_URL}/conversation/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant-ID': tenantUUID
+                    },
+                    body: JSON.stringify({ content: message })
+                });
+                const data = await res.json();
+                showResult('chatResult', res.ok, data);
+            } catch (err) {
+                showResult('chatResult', false, err.message);
+            }
+        }
+
+        // Auto-check API on page load
+        window.onload = () => {
+            checkApiHealth();
+
+            // Check if we have a saved tenant UUID
+            const savedTenantId = localStorage.getItem('relayos_tenant_id');
+            if (savedTenantId) {
+                tenantUUID = savedTenantId;
+                console.log('Using saved tenant UUID:', tenantUUID);
+            }
+        };
+
+        // Save tenant UUID when set
+        function setTenantUUID(uuid) {
+            tenantUUID = uuid;
+            localStorage.setItem('relayos_tenant_id', uuid);
+        }
+    </script>
+
+    <!-- RelayOS Widget - loads the built bundle -->
+    <script>
+        // Initialize widget after page loads
+        // You need to set your tenant UUID first using the test buttons above
+
+        // Load the widget bundle
+        const widgetScript = document.createElement('script');
+        widgetScript.src = './dist/relayos-widget.iife.js';
+        widgetScript.onload = () => {
+            // Get saved tenant UUID or prompt for it
+            let tid = localStorage.getItem('relayos_tenant_id');
+            if (!tid) {
+                tid = prompt(
+                    'Enter your tenant UUID for the widget:\n(Get it from Supabase: SELECT id FROM tenants WHERE slug = \'demo\')',
+                    'paste-uuid-here'
+                );
+                if (tid && tid !== 'paste-uuid-here') {
+                    localStorage.setItem('relayos_tenant_id', tid);
+                }
+            }
+
+            if (tid && tid !== 'paste-uuid-here') {
+                console.log('🚀 Initializing RelayOS Widget with tenant:', tid);
+                window.RelayOS.init({
+                    apiUrl: 'http://localhost:3001',
+                    tenantId: tid,
+                    title: 'Chat with us',
+                    position: 'bottom-right'
+                });
+            } else {
+                console.warn('No tenant UUID - widget not initialized');
+            }
+        };
+        document.body.appendChild(widgetScript);
+    </script>
+</body>
+
+</html>

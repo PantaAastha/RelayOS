@@ -1,4 +1,6 @@
 // LLM Module - NestJS module for LLM providers
+// Supports OpenAI and Gemini (with free tier)
+
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LLMService } from './llm.service';
@@ -10,11 +12,24 @@ import { LLMService } from './llm.service';
         {
             provide: LLMService,
             useFactory: (configService: ConfigService) => {
-                const openaiKey = configService.get<string>('OPENAI_API_KEY');
-                if (!openaiKey) {
-                    throw new Error('OPENAI_API_KEY is required');
+                // Check for Gemini API key first (free tier available)
+                const geminiKey = configService.get<string>('GEMINI_API_KEY');
+                if (geminiKey) {
+                    console.log('🤖 Using Gemini provider (free tier)');
+                    return new LLMService({ provider: 'gemini', apiKey: geminiKey });
                 }
-                return new LLMService(openaiKey);
+
+                // Fall back to OpenAI
+                const openaiKey = configService.get<string>('OPENAI_API_KEY');
+                if (openaiKey) {
+                    console.log('🤖 Using OpenAI provider');
+                    return new LLMService({ provider: 'openai', apiKey: openaiKey });
+                }
+
+                throw new Error(
+                    'Either GEMINI_API_KEY or OPENAI_API_KEY is required. ' +
+                    'Get a free Gemini API key at: https://aistudio.google.com/app/apikey'
+                );
             },
             inject: [ConfigService],
         },

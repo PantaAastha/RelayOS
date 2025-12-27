@@ -1,6 +1,9 @@
 // LLM Service - High-level service for LLM operations
+// Supports multiple providers: OpenAI, Gemini
+
 import { Injectable } from '@nestjs/common';
 import { OpenAIProvider } from './openai.provider';
+import { GeminiProvider } from './gemini.provider';
 import {
     LLMProvider,
     LLMMessage,
@@ -10,13 +13,25 @@ import {
     EmbeddingResult,
 } from './llm.interface';
 
+interface LLMServiceConfig {
+    provider: 'openai' | 'gemini';
+    apiKey: string;
+}
+
 @Injectable()
 export class LLMService {
     private provider: LLMProvider;
 
-    constructor(openaiApiKey: string) {
-        // Default to OpenAI, can be extended to support multiple providers
-        this.provider = new OpenAIProvider(openaiApiKey);
+    constructor(config: LLMServiceConfig) {
+        switch (config.provider) {
+            case 'gemini':
+                this.provider = new GeminiProvider(config.apiKey);
+                break;
+            case 'openai':
+            default:
+                this.provider = new OpenAIProvider(config.apiKey);
+                break;
+        }
     }
 
     get providerName(): string {
@@ -59,26 +74,50 @@ export class LLMService {
 
     /**
      * Helper: Build a system prompt with RAG context
+     * The context is placed prominently so the LLM uses it
      */
     buildRAGPrompt(
         systemPrompt: string,
         context: string[],
         userQuestion: string,
     ): LLMMessage[] {
-        const contextText = context.length > 0
-            ? `\n\nRelevant information:\n${context.map((c, i) => `[${i + 1}] ${c}`).join('\n\n')}`
-            : '';
+        // If we have context, make it VERY explicit that the LLM should use it
+        if (context.length > 0) {
+            const contextBlock = context.map((c, i) => `[Source ${i + 1}]:\n${c}`).join('\n\n---\n\n');
 
+            return [
+                {
+                    role: 'system',
+                    content: `You are a helpful customer support assistant for a company.
+
+CRITICAL: You MUST answer ONLY using the KNOWLEDGE BASE provided below. Do NOT use your general knowledge.
+
+=== KNOWLEDGE BASE START ===
+${contextBlock}
+=== KNOWLEDGE BASE END ===
+
+RULES:
+1. Answer the user's question using ONLY the information from the KNOWLEDGE BASE above.
+2. When you use information, cite it as [Source 1], [Source 2], etc.
+3. If the knowledge base doesn't contain relevant information, say "I don't have information about that in my knowledge base."
+4. Be helpful, professional, and concise.
+5. DO NOT make up information that is not in the knowledge base.`,
+                },
+                {
+                    role: 'user',
+                    content: userQuestion,
+                },
+            ];
+        }
+
+        // No context available
         return [
             {
                 role: 'system',
-                content: `${systemPrompt}${contextText}
+                content: `${systemPrompt}
 
-IMPORTANT RULES:
-1. Only answer based on the provided information above.
-2. If the information doesn't contain the answer, say "I don't have information about that."
-3. Always cite your sources using [1], [2], etc. when referencing the provided information.
-4. Never make up information that isn't in the provided context.`,
+IMPORTANT: You currently have no knowledge base documents to reference. 
+If the user asks a question you cannot answer, politely say you don't have that information.`,
             },
             {
                 role: 'user',

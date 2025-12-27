@@ -3,6 +3,16 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Enable CORS for widget and admin communication
+  // In production, restrict to specific origins
+  app.enableCors({
+    origin: true, // Allow all origins in development
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-Tenant-ID', 'Authorization'],
+    credentials: true,
+  });
+
   const port = process.env.API_PORT ?? 3001;
   await app.listen(port);
   console.log(`🚀 API running on http://localhost:${port}`);
