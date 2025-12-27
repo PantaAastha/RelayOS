@@ -333,6 +333,80 @@ export class ConversationService {
         };
     }
 
+    /**
+     * List all conversations for a tenant
+     */
+    async listConversations(tenantId: string): Promise<Array<{
+        id: string;
+        createdAt: string;
+        status: string;
+        messageCount: number;
+        lastMessage?: string;
+    }>> {
+        // Get conversations
+        const { data: conversations, error } = await this.supabase
+            .from('conversations')
+            .select('id, created_at, status')
+            .eq('tenant_id', tenantId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            throw new Error(`Failed to fetch conversations: ${error.message}`);
+        }
+
+        // Get message counts and last messages
+        const results = await Promise.all(
+            (conversations || []).map(async (conv) => {
+                const { data: messages } = await this.supabase
+                    .from('messages')
+                    .select('content, role, created_at')
+                    .eq('conversation_id', conv.id)
+                    .order('created_at', { ascending: false });
+
+                const lastUserMessage = messages?.find(m => m.role === 'user');
+
+                return {
+                    id: conv.id,
+                    createdAt: conv.created_at,
+                    status: conv.status,
+                    messageCount: messages?.length || 0,
+                    lastMessage: lastUserMessage?.content?.substring(0, 100),
+                };
+            })
+        );
+
+        return results;
+    }
+
+    /**
+     * Get statistics for dashboard
+     */
+    async getStats(tenantId: string): Promise<{
+        documentsCount: number;
+        conversationsCount: number;
+        messagesCount: number;
+    }> {
+        const [docsResult, convsResult, msgsResult] = await Promise.all([
+            this.supabase
+                .from('documents')
+                .select('id', { count: 'exact', head: true })
+                .eq('tenant_id', tenantId),
+            this.supabase
+                .from('conversations')
+                .select('id', { count: 'exact', head: true })
+                .eq('tenant_id', tenantId),
+            this.supabase
+                .from('messages')
+                .select('id, conversation_id', { count: 'exact', head: true }),
+        ]);
+
+        return {
+            documentsCount: docsResult.count || 0,
+            conversationsCount: convsResult.count || 0,
+            messagesCount: msgsResult.count || 0,
+        };
+    }
+
     private buildSystemPrompt(tenantId: string): string {
         // TODO: Load tenant-specific configuration
         return `You are a helpful customer support assistant. 

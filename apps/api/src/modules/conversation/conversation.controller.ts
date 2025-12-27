@@ -28,7 +28,6 @@ export class ConversationController {
 
     /**
      * POST /conversation/message - Send a message and get AI response
-     * This is the main endpoint for the widget
      */
     @Post('message')
     async sendMessage(
@@ -49,7 +48,6 @@ export class ConversationController {
                 dto.conversationId ?? null,
                 dto.content,
             );
-
             return result;
         } catch (error) {
             console.error('Error sending message:', error);
@@ -86,7 +84,35 @@ export class ConversationController {
     }
 
     /**
+     * GET /conversation/stats - Get dashboard statistics
+     * IMPORTANT: Must be defined BEFORE :id route
+     */
+    @Get('stats')
+    async getStats(@Headers('x-tenant-id') tenantId: string) {
+        if (!tenantId) {
+            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        }
+
+        const stats = await this.conversationService.getStats(tenantId);
+        return stats;
+    }
+
+    /**
+     * GET /conversation - List all conversations for tenant
+     */
+    @Get()
+    async listConversations(@Headers('x-tenant-id') tenantId: string) {
+        if (!tenantId) {
+            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        }
+
+        const conversations = await this.conversationService.listConversations(tenantId);
+        return { conversations };
+    }
+
+    /**
      * GET /conversation/:id - Get conversation history
+     * IMPORTANT: Must be defined AFTER static routes like /stats
      */
     @Get(':id')
     async getConversation(@Param('id') conversationId: string) {
