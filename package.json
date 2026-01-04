@@ -1,5 +1,5 @@
 {
-  "name": "RelayOS",
+  "name": "relayos",
   "private": true,
   "scripts": {
     "build": "turbo run build",
