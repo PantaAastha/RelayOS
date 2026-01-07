@@ -13,6 +13,7 @@ interface ChatWindowProps {
     apiUrl: string;
     tenantId: string;
     title: string;
+    testMode?: boolean;
     conversationId: string | null;
     messages: Message[];
     onConversationStart: (id: string) => void;
@@ -24,6 +25,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     apiUrl,
     tenantId,
     title,
+    testMode,
     conversationId,
     messages,
     onConversationStart,
@@ -120,6 +122,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     return (
         <div className="chat-window">
+            {/* Test Mode Banner */}
+            {testMode && (
+                <div className="test-mode-banner">
+                    ⚠️ TEST MODE - Conversations may not be saved
+                </div>
+            )}
+
             {/* Header */}
             <div className="chat-header">
                 <h2>{title}</h2>

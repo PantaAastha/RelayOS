@@ -12,6 +12,7 @@ interface RelayOSConfig {
     position?: 'bottom-right' | 'bottom-left';
     primaryColor?: string;
     title?: string;
+    testMode?: boolean;
 }
 
 declare global {
@@ -91,6 +92,8 @@ if (script) {
             position: (script.dataset.position as 'bottom-right' | 'bottom-left') || 'bottom-right',
             primaryColor: script.dataset.primaryColor,
             title: script.dataset.title,
+            testMode: script.dataset.testMode === 'true',
         });
     }
 }
+

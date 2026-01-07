@@ -9,6 +9,7 @@ interface WidgetConfig {
     position?: 'bottom-right' | 'bottom-left';
     primaryColor?: string;
     title?: string;
+    testMode?: boolean;
 }
 
 interface WidgetRef {
@@ -38,6 +39,7 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     const position = config.position || 'bottom-right';
     const primaryColor = config.primaryColor || '#2563eb';
     const title = config.title || 'Chat with us';
+    const testMode = config.testMode || false;
 
     return (
         <div
@@ -50,6 +52,7 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                     apiUrl={config.apiUrl}
                     tenantId={config.tenantId}
                     title={title}
+                    testMode={testMode}
                     conversationId={conversationId}
                     messages={messages}
                     onConversationStart={setConversationId}
@@ -57,10 +60,11 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                     onClose={() => setIsOpen(false)}
                 />
             ) : (
-                <WidgetButton onClick={() => setIsOpen(true)} />
+                <WidgetButton onClick={() => setIsOpen(true)} testMode={testMode} />
             )}
         </div>
     );
 });
 
 Widget.displayName = 'Widget';
+
