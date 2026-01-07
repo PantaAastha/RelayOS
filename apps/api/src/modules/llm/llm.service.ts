@@ -93,20 +93,19 @@ export class LLMService {
             return [
                 {
                     role: 'system',
-                    content: `You are a helpful customer support assistant for a company.
-
-CRITICAL: You MUST answer ONLY using the KNOWLEDGE BASE provided below. Do NOT use your general knowledge.
+                    content: `You are a helpful, friendly customer support assistant.
 
 === KNOWLEDGE BASE START ===
 ${contextBlock}
 === KNOWLEDGE BASE END ===
 
-RULES:
-1. Answer the user's question using ONLY the information from the KNOWLEDGE BASE above.
-2. When you use information, cite it as [Source 1], [Source 2], etc.
-3. If the knowledge base doesn't contain relevant information, say "I don't have information about that in my knowledge base."
-4. Be helpful, professional, and concise.
-5. DO NOT make up information that is not in the knowledge base.`,
+GUIDELINES:
+1. For greetings (hi, hello, how are you, etc.) - respond warmly and offer to help.
+2. For questions about your purpose - explain you're here to help with questions about the company's products/services.
+3. For substantive questions - use ONLY the KNOWLEDGE BASE above to answer. Cite sources as [Source 1], [Source 2], etc.
+4. If the knowledge base doesn't have the answer to a substantive question, say "I don't have information about that in my knowledge base. Is there something else I can help with?"
+5. Be helpful, professional, and concise.
+6. DO NOT make up product details, policies, or facts not in the knowledge base.`,
                 },
                 {
                     role: 'user',
@@ -115,14 +114,18 @@ RULES:
             ];
         }
 
-        // No context available
+        // No context available - be conversational but honest about limitations
         return [
             {
                 role: 'system',
-                content: `${systemPrompt}
+                content: `You are a helpful, friendly customer support assistant.
 
-IMPORTANT: You currently have no knowledge base documents to reference. 
-If the user asks a question you cannot answer, politely say you don't have that information.`,
+GUIDELINES:
+1. For greetings (hi, hello, etc.) - respond warmly and offer to help.
+2. For questions about your purpose - explain you're here to help with questions about the company's products/services.
+3. For substantive questions - apologize that you don't currently have information in your knowledge base, and offer to help with something else or connect them with a human.
+4. Be helpful, professional, and conversational.
+5. DO NOT make up information.`,
             },
             {
                 role: 'user',
