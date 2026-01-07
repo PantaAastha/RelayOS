@@ -30,7 +30,11 @@
     "@relayos/db": "*",
     "@relayos/types": "*",
     "@supabase/supabase-js": "^2.45.0",
+    "@types/multer": "^2.0.0",
+    "mammoth": "^1.11.0",
+    "multer": "^2.0.2",
     "openai": "^6.15.0",
+    "pdf-parse": "^2.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

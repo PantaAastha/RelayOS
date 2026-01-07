@@ -9,8 +9,13 @@ import {
     Headers,
     HttpException,
     HttpStatus,
+    UseInterceptors,
+    UploadedFile,
+    UploadedFiles,
 } from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { KnowledgeService } from './knowledge.service';
+import { FileExtractorService } from './file-extractor.service';
 
 interface IngestDocumentDto {
     title: string;
@@ -21,7 +26,10 @@ interface IngestDocumentDto {
 
 @Controller('knowledge')
 export class KnowledgeController {
-    constructor(private knowledgeService: KnowledgeService) { }
+    constructor(
+        private knowledgeService: KnowledgeService,
+        private fileExtractorService: FileExtractorService,
+    ) { }
 
     /**
      * POST /knowledge/documents - Ingest a new document
@@ -100,5 +108,142 @@ export class KnowledgeController {
         );
 
         return { results };
+    }
+
+    /**
+     * POST /knowledge/upload - Upload a single file
+     * Supports: PDF, DOCX, TXT, MD
+     */
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadFile(
+        @Headers('x-tenant-id') tenantId: string,
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: { title?: string; docType?: string },
+    ) {
+        if (!tenantId) {
+            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        }
+
+        if (!file) {
+            throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
+        }
+
+        // Extract text from file
+        const extraction = await this.fileExtractorService.extract(file);
+
+        if (!extraction.success || !extraction.content) {
+            throw new HttpException(
+                extraction.error || 'Failed to extract content from file',
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+
+        // Use filename as title if not provided
+        const title = body.title?.trim() || file.originalname.replace(/\.[^/.]+$/, '');
+
+        // Ingest the extracted content
+        const document = await this.knowledgeService.ingestDocument(
+            tenantId,
+            title,
+            extraction.content,
+            {
+                sourceUrl: file.originalname,
+                docType: body.docType || 'general',
+            },
+        );
+
+        return {
+            success: true,
+            document,
+            extractedLength: extraction.content.length,
+        };
+    }
+
+    /**
+     * POST /knowledge/upload-batch - Upload multiple files
+     * Supports: PDF, DOCX, TXT, MD (max 10 files)
+     */
+    @Post('upload-batch')
+    @UseInterceptors(FilesInterceptor('files', 10))
+    async uploadFiles(
+        @Headers('x-tenant-id') tenantId: string,
+        @UploadedFiles() files: Express.Multer.File[],
+        @Body() body: { docType?: string },
+    ) {
+        if (!tenantId) {
+            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        }
+
+        if (!files || files.length === 0) {
+            throw new HttpException('No files provided', HttpStatus.BAD_REQUEST);
+        }
+
+        const results: Array<{
+            filename: string;
+            success: boolean;
+            documentId?: string;
+            error?: string;
+        }> = [];
+
+        for (const file of files) {
+            try {
+                const extraction = await this.fileExtractorService.extract(file);
+
+                if (!extraction.success || !extraction.content) {
+                    results.push({
+                        filename: file.originalname,
+                        success: false,
+                        error: extraction.error || 'Failed to extract content',
+                    });
+                    continue;
+                }
+
+                const title = file.originalname.replace(/\.[^/.]+$/, '');
+                const document = await this.knowledgeService.ingestDocument(
+                    tenantId,
+                    title,
+                    extraction.content,
+                    {
+                        sourceUrl: file.originalname,
+                        docType: body.docType || 'general',
+                    },
+                );
+
+                results.push({
+                    filename: file.originalname,
+                    success: true,
+                    documentId: document.id,
+                });
+            } catch (error) {
+                results.push({
+                    filename: file.originalname,
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                });
+            }
+        }
+
+        const successCount = results.filter((r) => r.success).length;
+
+        return {
+            success: successCount > 0,
+            total: files.length,
+            processed: successCount,
+            failed: files.length - successCount,
+            results,
+        };
+    }
+
+    /**
+     * GET /knowledge/upload/supported - Get supported file types
+     */
+    @Get('upload/supported')
+    getSupportedTypes() {
+        return {
+            extensions: this.fileExtractorService.getSupportedExtensions(),
+            maxSizeMB: 10,
+            maxFiles: 10,
+        };
     }
 }
