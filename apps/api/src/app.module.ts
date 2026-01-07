@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthValidationService } from './health-validation.service';
 import { LLMModule } from './modules/llm/llm.module';
 import { EventsModule } from './modules/events/events.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
@@ -30,6 +31,7 @@ import * as path from 'path';
     N8nModule.forRoot(),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, HealthValidationService],
 })
 export class AppModule { }
+
