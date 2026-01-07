@@ -14,7 +14,7 @@ import {
 } from './llm.interface';
 
 interface LLMServiceConfig {
-    provider: 'openai' | 'gemini';
+    provider: 'openai' | 'gemini' | 'anthropic';
     apiKey: string;
 }
 
@@ -24,6 +24,11 @@ export class LLMService {
 
     constructor(config: LLMServiceConfig) {
         switch (config.provider) {
+            case 'anthropic':
+                // Lazy import to avoid loading unused providers
+                const { AnthropicProvider } = require('./anthropic.provider');
+                this.provider = new AnthropicProvider(config.apiKey);
+                break;
             case 'gemini':
                 this.provider = new GeminiProvider(config.apiKey);
                 break;

@@ -16,6 +16,7 @@ export interface Document {
     docType: string;
     version: number;
     status: string;
+    createdAt?: string;
 }
 
 export interface DocumentChunk {
@@ -200,6 +201,7 @@ export class KnowledgeService {
             docType: doc.doc_type,
             version: doc.version,
             status: doc.status,
+            createdAt: doc.created_at,
         }));
     }
 

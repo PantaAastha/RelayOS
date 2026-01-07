@@ -1,0 +1,13 @@
+node_modules
+dist
+npm-debug.log
+.git
+.gitignore
+*.md
+test
+coverage
+.env*
+.eslintrc*
+.prettierrc*
+jest.config.*
+tsconfig.build.json

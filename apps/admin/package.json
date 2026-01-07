@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
+    "build:docker": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "check-types": "tsc --noEmit"
