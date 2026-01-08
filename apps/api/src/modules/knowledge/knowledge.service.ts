@@ -138,7 +138,10 @@ export class KnowledgeService {
         query: string,
         limit = 5,
         conversationId?: string,
+        correlationId?: string,
     ): Promise<SearchResult[]> {
+        const searchStart = Date.now();
+
         // 1. Generate embedding for the query
         const { embedding } = await this.llmService.embed(query);
 
@@ -148,22 +151,38 @@ export class KnowledgeService {
             query_embedding: embedding,
             match_tenant_id: tenantId,
             match_count: limit,
-            match_threshold: 0.3, // Minimum similarity threshold
+            match_threshold: 0.2, // Lowered threshold for better recall
         });
 
+        const latencyMs = Date.now() - searchStart;
+
         if (error) {
-            // Log failure but return empty results
+            // Log failure with full context for debugging
             await this.eventsService.log(
                 tenantId,
                 'rag.searched',
-                { query, error: error.message, chunksRetrieved: 0 },
+                {
+                    query,
+                    error: error.message,
+                    chunksRetrieved: 0,
+                    latencyMs,
+                },
                 conversationId,
+                correlationId,
             );
             console.error('Search failed:', error);
             return [];
         }
 
-        // 3. Log the search
+        // 3. Build rich chunk details for debugging
+        const chunks = (data ?? []).map((row: any) => ({
+            section: row.metadata?.section || 'General',
+            similarity: Math.round(row.similarity * 100) / 100,
+            preview: row.content?.substring(0, 80) + '...',
+            tokenCount: row.metadata?.tokenCount,
+        }));
+
+        // 4. Log the search with full RAG observability
         await this.eventsService.log(
             tenantId,
             'rag.searched',
@@ -171,8 +190,11 @@ export class KnowledgeService {
                 query,
                 chunksRetrieved: data?.length ?? 0,
                 topScore: data?.[0]?.similarity ?? 0,
+                chunks, // Full chunk details for debugging
+                latencyMs,
             },
             conversationId,
+            correlationId,
         );
 
         return (data ?? []).map((row: any) => ({

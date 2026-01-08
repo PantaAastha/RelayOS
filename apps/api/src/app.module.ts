@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,6 +8,7 @@ import { EventsModule } from './modules/events/events.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { N8nModule } from './modules/n8n/n8n.module';
+import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
 import * as path from 'path';
 
 @Module({
@@ -33,5 +34,10 @@ import * as path from 'path';
   controllers: [AppController],
   providers: [AppService, HealthValidationService],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}
+
 

@@ -53,12 +53,19 @@ export class EventsService {
         eventType: EventType,
         payload: EventPayload,
         conversationId?: string,
+        correlationId?: string,
     ): Promise<void> {
+        const enrichedPayload = {
+            ...payload,
+            correlationId,
+            loggedAt: new Date().toISOString(),
+        };
+
         const { error } = await this.supabase.from('events').insert({
             tenant_id: tenantId,
             conversation_id: conversationId,
             event_type: eventType,
-            payload,
+            payload: enrichedPayload,
         });
 
         if (error) {

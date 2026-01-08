@@ -83,6 +83,7 @@ export class ConversationService {
         tenantId: string,
         conversationId: string | null,
         userMessage: string,
+        correlationId?: string,
     ): Promise<{
         conversationId: string;
         messageId: string;
@@ -91,6 +92,8 @@ export class ConversationService {
             citations: Array<{ docId: string; chunkId: string; text: string }>;
         };
     }> {
+        const requestStart = Date.now();
+
         // 1. Create conversation if needed
         if (!conversationId) {
             conversationId = await this.createConversation(tenantId);
@@ -116,14 +119,16 @@ export class ConversationService {
             'message.received',
             { messageId: userMsg.id, content: userMessage, role: 'user' },
             conversationId,
+            correlationId,
         );
 
-        // 3. Search knowledge base
+        // 3. Search knowledge base (with correlation ID for tracing)
         const searchResults = await this.knowledgeService.search(
             tenantId,
             userMessage,
             5,
             conversationId,
+            correlationId,
         );
 
         // 4. Get conversation history (last 10 messages for context)

@@ -6,9 +6,11 @@ import {
     Body,
     Param,
     Headers,
+    Req,
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ConversationService } from './conversation.service';
 
 interface SendMessageDto {
@@ -33,6 +35,7 @@ export class ConversationController {
     async sendMessage(
         @Headers('x-tenant-id') tenantId: string,
         @Body() dto: SendMessageDto,
+        @Req() req: Request,
     ) {
         if (!tenantId) {
             throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
@@ -47,6 +50,7 @@ export class ConversationController {
                 tenantId,
                 dto.conversationId ?? null,
                 dto.content,
+                req.correlationId,
             );
             return result;
         } catch (error) {
