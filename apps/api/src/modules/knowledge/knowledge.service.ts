@@ -1,11 +1,12 @@
 // Knowledge Service - RAG Pipeline
 // Handles document ingestion, embedding, and semantic search
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../llm/llm.service';
 import { EventsService } from '../events/events.service';
+import { ChunkerService } from './chunker.service';
 
 export interface Document {
     id: string;
@@ -38,11 +39,13 @@ export interface SearchResult {
 @Injectable()
 export class KnowledgeService {
     private supabase: SupabaseClient;
+    private readonly logger = new Logger(KnowledgeService.name);
 
     constructor(
         private configService: ConfigService,
         private llmService: LLMService,
         private eventsService: EventsService,
+        private chunkerService: ChunkerService,
     ) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
         const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -83,21 +86,25 @@ export class KnowledgeService {
             throw new Error(`Failed to insert document: ${docError.message}`);
         }
 
-        // 2. Chunk the content
-        const chunks = this.chunkText(content);
+        // 2. Chunk the content using semantic chunker
+        const chunks = this.chunkerService.chunkDocument(content, title);
 
-        // 3. Generate embeddings for all chunks
-        const embeddings = await this.llmService.embedBatch(chunks);
+        this.logger.log(`Chunked document "${title}" into ${chunks.length} chunks (token-based, with overlap)`);
+
+        // 3. Generate embeddings for all chunks (use wrapped content with context)
+        const embeddings = await this.llmService.embedBatch(chunks.map(c => c.content));
 
         // 4. Insert chunks with embeddings
         const chunkInserts = chunks.map((chunk, index) => ({
             document_id: doc.id,
-            chunk_index: index,
-            content: chunk,
+            chunk_index: chunk.index,
+            content: chunk.content, // Contains context wrapper
             embedding: embeddings[index].embedding,
             metadata: {
                 documentTitle: title,
-                chunkIndex: index,
+                section: chunk.section,
+                tokenCount: chunk.tokenCount,
+                chunkIndex: chunk.index,
                 totalChunks: chunks.length,
             },
         }));
@@ -219,47 +226,5 @@ export class KnowledgeService {
             throw new Error(`Failed to delete document: ${error.message}`);
         }
     }
-
-    /**
-     * Chunk text into smaller pieces for embedding.
-     * Uses a simple paragraph-based chunking strategy.
-     */
-    private chunkText(text: string, maxChunkSize = 500): string[] {
-        // Split by paragraphs first
-        const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
-
-        const chunks: string[] = [];
-        let currentChunk = '';
-
-        for (const paragraph of paragraphs) {
-            const trimmedPara = paragraph.trim();
-
-            // If adding this paragraph exceeds max size, save current chunk
-            if (currentChunk.length + trimmedPara.length > maxChunkSize && currentChunk.length > 0) {
-                chunks.push(currentChunk.trim());
-                currentChunk = '';
-            }
-
-            // If a single paragraph is too long, split by sentences
-            if (trimmedPara.length > maxChunkSize) {
-                const sentences = trimmedPara.split(/(?<=[.!?])\s+/);
-                for (const sentence of sentences) {
-                    if (currentChunk.length + sentence.length > maxChunkSize && currentChunk.length > 0) {
-                        chunks.push(currentChunk.trim());
-                        currentChunk = '';
-                    }
-                    currentChunk += (currentChunk ? ' ' : '') + sentence;
-                }
-            } else {
-                currentChunk += (currentChunk ? '\n\n' : '') + trimmedPara;
-            }
-        }
-
-        // Don't forget the last chunk
-        if (currentChunk.trim().length > 0) {
-            chunks.push(currentChunk.trim());
-        }
-
-        return chunks;
-    }
 }
+
