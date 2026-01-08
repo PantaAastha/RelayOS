@@ -20,7 +20,9 @@ export type EventType =
     | 'workflow.completed'
     | 'workflow.failed'
     | 'handoff.requested'
-    | 'handoff.completed';
+    | 'handoff.completed'
+    | 'n8n.handoff.triggered'
+    | 'n8n.lead.triggered';
 
 export interface EventPayload {
     [key: string]: unknown;

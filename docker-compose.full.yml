@@ -13,10 +13,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432" # Map to 5433 to avoid conflicts with local postgres
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-relayos}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-relayos}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,7 +58,7 @@ services:
       - n8n_postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${N8N_POSTGRES_USER:-n8n}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${N8N_POSTGRES_USER:-n8n}" ]
       interval: 10s
       timeout: 5s
       retries: 5

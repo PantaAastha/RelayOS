@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../llm/llm.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { EventsService } from '../events/events.service';
+import { N8nService } from '../n8n/n8n.service';
 
 export interface Message {
     id: string;
@@ -31,6 +32,7 @@ export class ConversationService {
         private llmService: LLMService,
         private knowledgeService: KnowledgeService,
         private eventsService: EventsService,
+        private n8nService: N8nService,
     ) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
         const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -270,7 +272,7 @@ export class ConversationService {
         tenantId: string,
         conversationId: string,
         reason?: string,
-    ): Promise<{ success: boolean; ticketId?: string }> {
+    ): Promise<{ success: boolean; ticketId?: string; n8nTriggered?: boolean }> {
         // Update conversation status
         const { error } = await this.supabase
             .from('conversations')
@@ -288,11 +290,39 @@ export class ConversationService {
             conversationId,
         );
 
-        // TODO: Trigger n8n workflow for handoff
-        // For now, just return success
+        // Get conversation history for context
+        const { data: messages } = await this.supabase
+            .from('messages')
+            .select('role, content')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true })
+            .limit(20);
+
+        // Trigger n8n handoff workflow
+        const n8nTriggered = await this.n8nService.triggerHandoff({
+            sessionId: conversationId,
+            tenantId,
+            userMessage: reason || 'User requested human support',
+            conversationHistory: messages?.map(m => ({
+                role: m.role,
+                content: m.content,
+            })),
+            metadata: { reason },
+        });
+
+        if (n8nTriggered) {
+            await this.eventsService.log(
+                tenantId,
+                'n8n.handoff.triggered',
+                { conversationId },
+                conversationId,
+            );
+        }
+
         return {
             success: true,
             ticketId: `TICKET-${Date.now()}`,
+            n8nTriggered,
         };
     }
 
