@@ -143,14 +143,6 @@ export class ConversationService {
         const context = searchResults.map((r) => r.content);
         const systemPrompt = this.buildSystemPrompt(tenantId);
 
-        // DEBUG: Log what context we're passing to the LLM
-        console.log('🔍 RAG Debug:');
-        console.log(`   - Search results count: ${searchResults.length}`);
-        console.log(`   - Context chunks: ${context.length}`);
-        if (context.length > 0) {
-            console.log(`   - First context preview: ${context[0].substring(0, 100)}...`);
-        }
-
         // 6. Log agent invocation
         await this.eventsService.log(
             tenantId,
@@ -165,10 +157,6 @@ export class ConversationService {
             context,
             userMessage,
         );
-
-        // DEBUG: Log the system message being sent
-        console.log(`   - System message length: ${messages[0].content.length} chars`);
-        console.log(`   - System message preview: ${messages[0].content.substring(0, 300)}...`);
 
         // Add conversation history
         if (history && history.length > 1) {

@@ -207,6 +207,126 @@ export class KnowledgeService {
     }
 
     /**
+     * Re-ingest an existing document with current chunker settings.
+     * Useful after updating chunking parameters.
+     */
+    async reingestDocument(documentId: string): Promise<Document> {
+        // 1. Fetch the existing document
+        const { data: doc, error: docError } = await this.supabase
+            .from('documents')
+            .select('*')
+            .eq('id', documentId)
+            .single();
+
+        if (docError || !doc) {
+            throw new Error(`Document not found: ${docError?.message || 'Unknown error'}`);
+        }
+
+        // 2. Delete existing chunks
+        const { error: deleteError } = await this.supabase
+            .from('document_chunks')
+            .delete()
+            .eq('document_id', documentId);
+
+        if (deleteError) {
+            throw new Error(`Failed to delete old chunks: ${deleteError.message}`);
+        }
+
+        this.logger.log(`Deleted old chunks for document "${doc.title}", re-chunking...`);
+
+        // 3. Re-chunk with current settings
+        const chunks = this.chunkerService.chunkDocument(doc.content, doc.title);
+
+        this.logger.log(`Re-chunked document "${doc.title}" into ${chunks.length} chunks`);
+
+        // 4. Generate new embeddings
+        const embeddings = await this.llmService.embedBatch(chunks.map(c => c.content));
+
+        // 5. Insert new chunks
+        const chunkInserts = chunks.map((chunk, index) => ({
+            document_id: doc.id,
+            chunk_index: chunk.index,
+            content: chunk.content,
+            embedding: embeddings[index].embedding,
+            metadata: {
+                documentTitle: doc.title,
+                section: chunk.section,
+                tokenCount: chunk.tokenCount,
+                chunkIndex: chunk.index,
+                totalChunks: chunks.length,
+            },
+        }));
+
+        const { error: chunkError } = await this.supabase
+            .from('document_chunks')
+            .insert(chunkInserts);
+
+        if (chunkError) {
+            throw new Error(`Failed to insert new chunks: ${chunkError.message}`);
+        }
+
+        // 6. Increment version
+        const { error: versionError } = await this.supabase
+            .from('documents')
+            .update({ version: doc.version + 1 })
+            .eq('id', documentId);
+
+        if (versionError) {
+            this.logger.warn(`Failed to update version: ${versionError.message}`);
+        }
+
+        return {
+            id: doc.id,
+            tenantId: doc.tenant_id,
+            title: doc.title,
+            content: doc.content,
+            sourceUrl: doc.source_url,
+            docType: doc.doc_type,
+            version: doc.version + 1,
+            status: doc.status,
+        };
+    }
+
+    /**
+     * Re-ingest all documents for a tenant with current chunker settings.
+     * Useful for batch updates after changing chunking parameters.
+     */
+    async reingestAllDocuments(tenantId: string): Promise<{
+        total: number;
+        processed: number;
+        failed: number;
+        results: Array<{ id: string; title: string; success: boolean; error?: string }>;
+    }> {
+        const documents = await this.getDocuments(tenantId);
+        const results: Array<{ id: string; title: string; success: boolean; error?: string }> = [];
+
+        this.logger.log(`Starting bulk re-ingest for ${documents.length} documents`);
+
+        for (const doc of documents) {
+            try {
+                await this.reingestDocument(doc.id);
+                results.push({ id: doc.id, title: doc.title, success: true });
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                this.logger.error(`Failed to re-ingest document "${doc.title}": ${errorMessage}`);
+                results.push({ id: doc.id, title: doc.title, success: false, error: errorMessage });
+            }
+        }
+
+        const processed = results.filter(r => r.success).length;
+        const failed = results.filter(r => !r.success).length;
+
+        this.logger.log(`Bulk re-ingest complete: ${processed}/${documents.length} succeeded, ${failed} failed`);
+
+        return {
+            total: documents.length,
+            processed,
+            failed,
+            results,
+        };
+    }
+
+    /**
      * Get all documents for a tenant
      */
     async getDocuments(tenantId: string): Promise<Document[]> {

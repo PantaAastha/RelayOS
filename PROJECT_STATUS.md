@@ -68,12 +68,12 @@
 
 ## What's Left 🔴
 
-### Priority 1: Refinements
+### Priority 1: Refinements ✅
 
-| Task | Effort | Description |
+| Task | Status | Description |
 |------|--------|-------------|
-| Re-ingest endpoint | 30 min | API to reprocess existing docs with new chunking |
-| Test mode cleanup | 15 min | Remove debug console.logs |
+| Re-ingest endpoint | ✅ Complete | `POST /knowledge/documents/:id/reingest` |
+| Test mode cleanup | ✅ Complete | Removed RAG debug console.logs |
 
 ### Priority 2: Quality Assurance
 

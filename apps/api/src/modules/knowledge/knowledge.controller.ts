@@ -86,6 +86,38 @@ export class KnowledgeController {
     }
 
     /**
+     * POST /knowledge/documents/:id/reingest - Re-process document with current chunker
+     * Useful after changing chunking parameters to update embeddings
+     */
+    @Post('documents/:id/reingest')
+    async reingestDocument(@Param('id') documentId: string) {
+        const document = await this.knowledgeService.reingestDocument(documentId);
+        return {
+            success: true,
+            document,
+            message: 'Document re-ingested with current chunker settings',
+        };
+    }
+
+    /**
+     * POST /knowledge/reingest-all - Re-process all documents with current chunker
+     * Useful for batch updates after changing chunking parameters
+     */
+    @Post('reingest-all')
+    async reingestAllDocuments(@Headers('x-tenant-id') tenantId: string) {
+        if (!tenantId) {
+            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        }
+
+        const result = await this.knowledgeService.reingestAllDocuments(tenantId);
+        return {
+            success: result.failed === 0,
+            ...result,
+            message: `Re-ingested ${result.processed}/${result.total} documents`,
+        };
+    }
+
+    /**
      * POST /knowledge/search - Search documents
      */
     @Post('search')
