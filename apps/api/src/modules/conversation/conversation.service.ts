@@ -122,14 +122,32 @@ export class ConversationService {
             correlationId,
         );
 
-        // 3. Search knowledge base (with correlation ID for tracing)
-        const searchResults = await this.knowledgeService.search(
-            tenantId,
-            userMessage,
-            5,
-            conversationId,
-            correlationId,
-        );
+        // 3. Search knowledge base (with error boundary - proceed without context if search fails)
+        let searchResults: Awaited<ReturnType<typeof this.knowledgeService.search>> = [];
+        try {
+            searchResults = await this.knowledgeService.search(
+                tenantId,
+                userMessage,
+                5,
+                conversationId,
+                correlationId,
+            );
+        } catch (error) {
+            // Log the error but continue without RAG context
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.warn(`[RAG] Search failed, proceeding without context: ${errorMessage}`);
+            await this.eventsService.log(
+                tenantId,
+                'rag.refused',
+                {
+                    reason: 'search_error',
+                    error: errorMessage,
+                    query: userMessage.substring(0, 100),
+                },
+                conversationId,
+                correlationId,
+            );
+        }
 
         // 4. Get conversation history (last 10 messages for context)
         const { data: history } = await this.supabase
@@ -169,18 +187,22 @@ export class ConversationService {
         }
 
         const startTime = Date.now();
-        let response;
 
-        try {
-            response = await this.llmService.complete(messages);
-        } catch (error) {
+        // Use safeComplete for automatic retry and fallback on errors
+        const response = await this.llmService.safeComplete(messages);
+
+        // Log if we got a fallback response
+        if ('fallback' in response && response.fallback) {
             await this.eventsService.log(
                 tenantId,
                 'agent.failed',
-                { agentType: 'knowledge', error: String(error) },
+                {
+                    agentType: 'knowledge',
+                    error: 'error' in response ? response.error : 'Unknown error',
+                    fallbackUsed: true,
+                },
                 conversationId,
             );
-            throw error;
         }
 
         const durationMs = Date.now() - startTime;

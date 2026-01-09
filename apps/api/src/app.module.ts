@@ -1,5 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthValidationService } from './health-validation.service';
@@ -9,6 +11,8 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { N8nModule } from './modules/n8n/n8n.module';
 import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
+import { TenantThrottlerGuard } from './guards/tenant-throttler.guard';
+import { throttlerConfig } from './config/throttler.config';
 import * as path from 'path';
 
 @Module({
@@ -23,6 +27,8 @@ import * as path from 'path';
         '.env',
       ],
     }),
+    // Rate limiting
+    ThrottlerModule.forRoot(throttlerConfig),
     // Core modules
     LLMModule,
     EventsModule,
@@ -32,12 +38,18 @@ import * as path from 'path';
     N8nModule.forRoot(),
   ],
   controllers: [AppController],
-  providers: [AppService, HealthValidationService],
+  providers: [
+    AppService,
+    HealthValidationService,
+    // Global rate limiting guard
+    {
+      provide: APP_GUARD,
+      useClass: TenantThrottlerGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(CorrelationIdMiddleware).forRoutes('*');
   }
 }
-
-

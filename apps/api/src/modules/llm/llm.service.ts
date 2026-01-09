@@ -54,6 +54,82 @@ export class LLMService {
     }
 
     /**
+     * Fallback response messages for different error scenarios
+     */
+    private static readonly FALLBACK_RESPONSES = {
+        timeout: "I'm sorry, I'm taking longer than expected to respond. Please try again in a moment.",
+        quota: "I'm temporarily unavailable due to high demand. Please try again in a few minutes.",
+        generic: "I apologize, but I'm having trouble responding right now. Please try again.",
+    };
+
+    /**
+     * Generate a chat completion with error boundaries
+     * - Retries up to 2 times with exponential backoff
+     * - Returns fallback response on persistent failure
+     */
+    async safeComplete(
+        messages: LLMMessage[],
+        options?: LLMCompletionOptions,
+    ): Promise<LLMCompletionResult & { fallback?: boolean; error?: string }> {
+        const maxRetries = 2;
+        const baseDelay = 1000; // 1 second
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const result = await this.complete(messages, options);
+                return result;
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                const isLastAttempt = attempt === maxRetries;
+
+                // Log retry attempt
+                if (!isLastAttempt) {
+                    console.warn(`[LLM] Attempt ${attempt + 1} failed: ${errorMessage}. Retrying...`);
+                    // Exponential backoff: 1s, 2s
+                    await this.sleep(baseDelay * Math.pow(2, attempt));
+                    continue;
+                }
+
+                // All retries failed - return fallback response
+                console.error(`[LLM] All ${maxRetries + 1} attempts failed: ${errorMessage}`);
+
+                // Determine fallback message based on error type
+                let fallbackContent = LLMService.FALLBACK_RESPONSES.generic;
+                if (errorMessage.toLowerCase().includes('timeout')) {
+                    fallbackContent = LLMService.FALLBACK_RESPONSES.timeout;
+                } else if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate')) {
+                    fallbackContent = LLMService.FALLBACK_RESPONSES.quota;
+                }
+
+                return {
+                    content: fallbackContent,
+                    tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                    model: 'fallback',
+                    finishReason: 'stop' as const,
+                    fallback: true,
+                    error: errorMessage,
+                };
+            }
+        }
+
+        // Should never reach here, but TypeScript needs this
+        return {
+            content: LLMService.FALLBACK_RESPONSES.generic,
+            tokensUsed: { prompt: 0, completion: 0, total: 0 },
+            model: 'fallback',
+            finishReason: 'stop' as const,
+            fallback: true,
+        };
+    }
+
+    /**
+     * Helper for delay between retries
+     */
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
      * Generate a streaming chat completion
      */
     streamComplete(

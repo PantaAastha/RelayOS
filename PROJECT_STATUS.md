@@ -46,6 +46,7 @@
 | Correlation IDs | ✅ Complete | Trace requests across services |
 | **RAG tracing** | ✅ Complete | Logs chunks, sections, similarity, latency |
 | Console logging | ✅ Complete | Structured JSON logs |
+| **Observability UI** | ✅ Complete | Events timeline with filters, search, auto-refresh |
 
 ### Integrations
 
@@ -86,9 +87,9 @@
 
 | Task | Effort | Description |
 |------|--------|-------------|
-| Rate limiting | 2-3 hrs | Prevent abuse |
-| PII redaction | 3-4 hrs | Filter sensitive data from logs |
-| Error boundaries | 2 hrs | Graceful degradation |
+| **Rate limiting** | ✅ Done | 100 req/min per tenant with @nestjs/throttler |
+| PII redaction | 3-4 hrs | Deferred until auth implemented |
+| **Error boundaries** | ✅ Done | safeComplete with retry + fallback responses |
 
 ### Priority 4: Nice-to-Have
 
