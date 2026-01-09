@@ -242,7 +242,7 @@ export default function DocumentsPage() {
                             <tr>
                                 <th>Title</th>
                                 <th>Type</th>
-                                <th>v</th>
+                                <th>Version</th>
                                 <th>Created</th>
                                 <th style={{ width: '100px' }}></th>
                             </tr>
