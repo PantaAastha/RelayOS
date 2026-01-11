@@ -4,7 +4,7 @@ import { ChatInput } from './ChatInput';
 
 interface Message {
     id: string;
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system';
     content: string;
     citations?: Array<{ text: string; sourceUrl?: string }>;
 }
@@ -16,6 +16,7 @@ interface ChatWindowProps {
     testMode?: boolean;
     conversationId: string | null;
     messages: Message[];
+    isLoadingHistory?: boolean;
     onConversationStart: (id: string) => void;
     onMessagesUpdate: (messages: Message[]) => void;
     onClose: () => void;
@@ -28,6 +29,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     testMode,
     conversationId,
     messages,
+    isLoadingHistory = false,
     onConversationStart,
     onMessagesUpdate,
     onClose,
@@ -38,7 +40,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isLoadingHistory]);
 
     const sendMessage = async (content: string) => {
         if (!content.trim() || isLoading) return;
@@ -155,7 +157,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
             {/* Messages */}
             <div className="chat-messages">
-                {messages.length === 0 && (
+                {isLoadingHistory && (
+                    <div className="history-loading">
+                        <div className="spinner"></div>
+                        <span>Restoring conversation...</span>
+                    </div>
+                )}
+
+                {!isLoadingHistory && messages.length === 0 && (
                     <div className="welcome-message">
                         <p>👋 Hi there! How can I help you today?</p>
                     </div>

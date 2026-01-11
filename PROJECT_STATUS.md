@@ -89,7 +89,7 @@
 |------|--------|-------------|
 | **Rate limiting** | ✅ Done | 100 req/min per tenant with @nestjs/throttler |
 | PII redaction | 3-4 hrs | Deferred until auth implemented |
-| **Error boundaries** | ✅ Done | safeComplete with retry + fallback responses |
+| **Message persistence** | ✅ Done | localStorage + API sync for widget |
 
 ### Priority 4: Nice-to-Have
 

@@ -1,5 +1,5 @@
 // Main Widget Component
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { ChatWindow } from './components/ChatWindow';
 import { WidgetButton } from './components/WidgetButton';
 
@@ -26,10 +26,56 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Array<{
         id: string;
-        role: 'user' | 'assistant';
+        role: 'user' | 'assistant' | 'system';
         content: string;
         citations?: Array<{ text: string; sourceUrl?: string }>;
     }>>([]);
+
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    // Persistence Key
+    const storageKey = `relayos_widget_${config.tenantId}`;
+
+    // Load from storage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            try {
+                const { conversationId: savedId } = JSON.parse(saved);
+                if (savedId) {
+                    setConversationId(savedId);
+                    // Fetch latest history from API
+                    fetchConversation(savedId);
+                }
+            } catch (e) {
+                console.error('Failed to parse saved conversation', e);
+            }
+        }
+    }, [config.tenantId]);
+
+    // Save to storage when conversationId changes
+    useEffect(() => {
+        if (conversationId) {
+            localStorage.setItem(storageKey, JSON.stringify({ conversationId }));
+        }
+    }, [conversationId, config.tenantId]);
+
+    const fetchConversation = async (id: string) => {
+        setIsLoadingHistory(true);
+        try {
+            const response = await fetch(`${config.apiUrl}/conversation/${id}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.messages) {
+                    setMessages(data.messages);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch conversation history', e);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
 
     useImperativeHandle(ref, () => ({
         open: () => setIsOpen(true),
@@ -54,7 +100,8 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                     title={title}
                     testMode={testMode}
                     conversationId={conversationId}
-                    messages={messages}
+                    messages={messages as any} // Cast to match ChatWindow props if needed
+                    isLoadingHistory={isLoadingHistory}
                     onConversationStart={setConversationId}
                     onMessagesUpdate={setMessages}
                     onClose={() => setIsOpen(false)}
