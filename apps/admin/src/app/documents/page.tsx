@@ -28,6 +28,7 @@ export default function DocumentsPage() {
     const [reingestingAll, setReingestingAll] = useState(false);
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
     const showToast = (type: Toast['type'], title: string, message: string) => {
         const id = Date.now().toString();
@@ -63,19 +64,25 @@ export default function DocumentsPage() {
         fetchDocuments();
     }, [tenantId]);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this document?')) return;
+    const handleDeleteClick = (id: string) => {
+        setDeleteTargetId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTargetId) return;
 
         try {
-            await fetch(`${API_URL}/knowledge/documents/${id}`, {
+            await fetch(`${API_URL}/knowledge/documents/${deleteTargetId}`, {
                 method: 'DELETE',
                 headers: { 'X-Tenant-ID': tenantId },
             });
-            setDocuments(documents.filter(d => d.id !== id));
+            setDocuments(documents.filter(d => d.id !== deleteTargetId));
             showToast('success', 'Deleted', 'Document removed from knowledge base');
         } catch (error) {
             console.error('Failed to delete document:', error);
             showToast('error', 'Error', 'Failed to delete document');
+        } finally {
+            setDeleteTargetId(null);
         }
     };
 
@@ -197,6 +204,30 @@ export default function DocumentsPage() {
                 </div>
             )}
 
+            {/* Delete Confirmation Modal */}
+            {deleteTargetId && (
+                <div className="modal-overlay" onClick={() => setDeleteTargetId(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h3 className="modal-title">Delete Document?</h3>
+                        <p className="modal-message">
+                            Are you sure you want to delete this document? This action cannot be undone.
+                        </p>
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary btn-sm" onClick={() => setDeleteTargetId(null)}>
+                                Cancel
+                            </button>
+                            <button
+                                className="btn btn-primary btn-sm"
+                                onClick={confirmDelete}
+                                style={{ background: 'var(--error)', borderColor: 'var(--error)' }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1 className="page-title">Documents</h1>
@@ -268,7 +299,7 @@ export default function DocumentsPage() {
                                             </button>
                                             <button
                                                 className="btn btn-ghost btn-icon"
-                                                onClick={() => handleDelete(doc.id)}
+                                                onClick={() => handleDeleteClick(doc.id)}
                                                 title="Delete"
                                                 style={{ color: 'var(--error)' }}
                                             >

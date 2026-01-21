@@ -442,7 +442,8 @@ export class ConversationService {
                 .eq('tenant_id', tenantId),
             this.supabase
                 .from('messages')
-                .select('id, conversation_id', { count: 'exact', head: true }),
+                .select('id, conversation_id, conversations!inner(tenant_id)', { count: 'exact', head: true })
+                .eq('conversations.tenant_id', tenantId),
         ]);
 
         return {
