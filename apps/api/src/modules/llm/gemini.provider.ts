@@ -15,18 +15,17 @@ export class GeminiProvider implements LLMProvider {
     readonly name = 'gemini';
     private client: GoogleGenerativeAI;
     private model: GenerativeModel;
-    private embeddingModel: GenerativeModel;
+    private apiKey: string;
     private defaultModelName: string;
 
     constructor(
         apiKey: string,
         defaultModel = 'gemini-2.5-flash', // Current stable model with free tier
-        embeddingModel = 'text-embedding-004', // Free embeddings
     ) {
+        this.apiKey = apiKey;
         this.client = new GoogleGenerativeAI(apiKey);
         this.defaultModelName = defaultModel;
         this.model = this.client.getGenerativeModel({ model: defaultModel });
-        this.embeddingModel = this.client.getGenerativeModel({ model: embeddingModel });
     }
 
     async complete(
@@ -126,12 +125,29 @@ export class GeminiProvider implements LLMProvider {
     }
 
     async embed(text: string): Promise<EmbeddingResult> {
-        const result = await this.embeddingModel.embedContent(text);
-        const embedding = result.embedding.values;
+        // Use REST API directly for reliable gemini-embedding-001 support
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${this.apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: { parts: [{ text }] },
+                    outputDimensionality: 768, // MRL to match existing DB schema
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Embedding failed: ${response.status} ${response.statusText} - ${errorBody}`);
+        }
+
+        const data = await response.json();
 
         return {
-            embedding,
-            model: 'text-embedding-004',
+            embedding: data.embedding.values,
+            model: 'gemini-embedding-001',
             tokensUsed: Math.ceil(text.length / 4), // Estimate
         };
     }

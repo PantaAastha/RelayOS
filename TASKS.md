@@ -1,94 +1,164 @@
 # RelayOS v2 - Enhancement Roadmap
 
-## Overview
-Evolution from basic chatbot to intelligent, platform-aware AI assistant.
+## Target Customer (ICP)
+**Mid-Market B2B SaaS Support**
+- Company size: 20-200 employees
+- ARR: $5M - $50M
+- Pain: Support team drowning, docs outdated, high ticket volume
+- Tech: Already using Notion/GitBook/Confluence for docs
+- Decision Maker: Head of Support, VP Customer Success
 
 ---
 
-## Phase 1: RAG Refinement 🎯
+## Phase 1: RAG Quality + Security 🎯 [Priority: CRITICAL]
+
+> **Goal**: Be accurate enough that B2B customers trust it with their users
 
 ### Query Processing
-- [ ] **Query Rewriting** - LLM rewrites user question before retrieval
+- [x] 🔴 **Query Rewriting** - LLM rewrites user question before retrieval ✅
   - Expand abbreviations, add synonyms
   - Handle typos and unclear phrasing
-- [ ] **Query Classification** - Detect query type (factual, procedural, opinion)
+  - Includes caching (1hr TTL) and greeting skip logic
+- [x] 🟡 **Query Classification** - Detect query type (factual, procedural, troubleshooting, billing) ✅
+  - Heuristic-based detection with regex patterns
+  - Boosts matching doc types during retrieval (5% similarity boost)
 
 ### Retrieval Improvements
-- [ ] **Hybrid Search** - Combine semantic (vector) + keyword search
-- [ ] **Re-ranking** - LLM re-ranks retrieved chunks by relevance
-- [ ] **Chunk Metadata** - Enrich with section headers, doc type, recency
+- [ ] 🔴 **Hybrid Search** - Combine semantic (vector) + keyword search
+- [ ] 🟡 **Re-ranking** - LLM re-ranks retrieved chunks by relevance
+- [ ] 🟢 **Chunk Metadata** - Enrich with section headers, doc type, recency
 
 ### Answer Quality
-- [ ] **Answer Grading** - Self-check if answer is supported by context
-- [ ] **Confidence Scores** - Show confidence, refuse if low
-- [ ] **Feedback Loop** - 👍/👎 buttons → store for quality tracking
+- [ ] � **Answer Grading** - Self-check if answer is supported by context
+- [ ] 🟡 **Confidence Scores** - Show confidence, refuse gracefully if low
+- [ ] � **Feedback Loop** - 👍/👎 buttons → store for quality tracking
+
+### Security & Guardrails 🔒
+- [ ] 🔴 **PII Scrubbing** - Filter sensitive data (emails, phones, SSNs) from responses
+- [ ] 🔴 **Prompt Injection Defense** - Gatekeeper check for hijack attempts
+- [ ] 🟡 **Output Validation** - Ensure responses stay within defined persona boundaries
+
+### Quality Assurance
+- [ ] 🔴 **Canonical Question Pack** - 20-30 test questions for regression
+- [ ] 🟡 **Promptfoo Integration** - Automated RAG quality testing
 
 ---
 
-## Phase 2: Platform Awareness 🌐
+## Phase 2: Support Intelligence 🌐 [Priority: HIGH]
 
-### Context Passing
-- [ ] **Page Context** - Widget sends current URL/page title to API
-- [ ] **User Context** - Pass user ID, plan tier, account info
-- [ ] **Session History** - Maintain conversation context across messages
+> **Goal**: Understand context and route efficiently
 
-### Intelligent Responses
-- [ ] **Intent Classification** - Detect: Support? Sales? General?
-- [ ] **Suggested Questions** - Show relevant starters based on page
-- [ ] **Follow-up Suggestions** - Suggest related questions after answer
-- [ ] **Escalation Intelligence** - Detect frustration → proactive handoff
+### Context Engineering
+- [ ] 🔴 **Page Context** - Widget sends current URL/page title to API
+- [ ] 🔴 **User Context** - Pass user ID, plan tier, account info
+- [ ] 🔴 **Context Schema** - Define standard payload structure for widget ↔ API
+- [ ] 🟡 **Session History** - Maintain conversation context across messages
 
----
+### Intent & Routing
+- [ ] � **Intent Classification** - Detect: Support? Billing? Feature Request? Bug?
+- [ ] � **Escalation Intelligence** - Detect frustration → proactive handoff
+- [ ] 🟡 **Suggested Questions** - Show relevant starters based on page/docs
+- [ ] 🟡 **Follow-up Suggestions** - Suggest related questions after answer
 
-## Phase 3: Agentic Capabilities 🤖
-
-### Tool Use
-- [ ] **Action Framework** - Define callable tools (order lookup, ticket create)
-- [ ] **Tool Router** - Detect when to use tools vs RAG
-- [ ] **Result Formatting** - Present tool results naturally
-
-### Memory & Personalization
-- [ ] **User Preferences** - Remember communication preferences
-- [ ] **Conversation Memory** - Reference past conversations
-- [ ] **Proactive Nudges** - "I see you've been here a while—need help?"
+### Persona & Voice
+- [ ] 🟡 **Persona Definition** - Define voice, tone, and boundary rules per tenant
+- [ ] 🟢 **Persona Consistency** - Ensure predictable behavior across sessions
 
 ---
 
-## Phase 4: Quality Assurance 📊
+## Phase 3: Ticketing & Integrations 🔗 [Priority: HIGH]
 
-- [ ] **Canonical Question Pack** - 20-30 test questions for regression
-- [ ] **Promptfoo Integration** - Automated RAG quality testing
-- [ ] **A/B Testing Framework** - Compare prompt versions
+> **Goal**: Seamlessly integrate with existing support stack
 
----
-
-## Widget UX Improvements 💬
-
-- [ ] **Typing Indicator / Streaming** - Real-time response feedback
-- [ ] **Better Message Formatting** - Markdown, code blocks, links
-- [ ] **Quick Reply Buttons** - Common follow-up actions
-- [ ] **Dark/Light Mode** - Match host site theme
-- [ ] **Mobile Optimization** - Better touch experience
-
----
-
-## n8n Workflows & Automation 🔗
+### Ticketing System Integrations (n8n)
+- [ ] 🔴 **Zendesk Integration** - Create tickets, sync conversation context
+- [ ] 🔴 **Intercom Integration** - Handoff to Intercom inbox
+- [ ] 🟡 **Freshdesk Integration** - Alternative ticketing support
+- [ ] 🟡 **Linear/Jira Integration** - Escalate bug reports to engineering
 
 ### Workflow Templates
-- [ ] **Example Workflows** - Importable templates for common use cases
-- [ ] **CRM Integration** - Sync leads/contacts to HubSpot, Salesforce, etc.
-- [ ] **Ticket Creation** - Auto-create support tickets in Zendesk, Freshdesk
-- [ ] **Email Notifications** - Notify team on handoff, escalation
-
-### Event Triggers
-- [ ] **Custom Event Types** - Define tenant-specific event types
-- [ ] **Webhook Filtering** - Only trigger on specific event conditions
-- [ ] **Batch Processing** - Aggregate events before triggering
+- [ ] 🔴 **Handoff Workflow** - Notify team on handoff with full context
+- [ ] 🟡 **Escalation Workflow** - Route by intent (billing → finance, bugs → eng)
+- [ ] � **Email Notifications** - Notify team on handoff, escalation
 
 ### Dashboard Integration
-- [ ] **Workflow Status UI** - Show active workflows in admin
-- [ ] **Execution Logs** - View n8n execution history in admin
-- [ ] **One-Click Install** - Install template workflows from admin
+- [ ] 🟡 **Workflow Status UI** - Show active workflows in admin
+- [ ] 🟡 **Execution Logs** - View n8n execution history in admin
+- [ ] 🟢 **One-Click Install** - Install template workflows from admin
+
+---
+
+## Phase 4: Analytics & ROI � [Priority: MEDIUM]
+
+> **Goal**: Prove value to customer — "X tickets deflected"
+
+### Metrics Dashboard
+- [ ] � **Deflection Rate** - % of conversations resolved without handoff
+- [ ] � **Resolution Time** - Average time to answer
+- [ ] � **Top Questions** - Most common queries (identify doc gaps)
+- [ ] � **Feedback Summary** - Aggregate 👍/👎 trends
+
+### Advanced Analytics
+- [ ] 🟡 **A/B Testing Framework** - Compare prompt versions
+- [ ] 🟡 **Cost Analytics** - Token usage per tenant
+- [ ] 🟢 **Latency Dashboard** - Track P50/P95 response times
+
+---
+
+## Phase 5: Agentic Capabilities 🤖 [Priority: FUTURE]
+
+> **Goal**: Go beyond Q&A to actions
+
+### Tool Use
+- [ ] 🟡 **Action Framework** - Define callable tools (e.g., check subscription status)
+- [ ] 🟡 **Tool Router** - Detect when to use tools vs RAG
+- [ ] 🟢 **Sandboxed Execution** - Isolated containers for script execution
+
+### Task Decomposition
+- [ ] 🟡 **Complexity-Based Routing** - Route simple queries to faster/cheaper models
+- [ ] � **Multi-Agent Prep** - Architecture for specialized sub-agents
+
+### Memory & Personalization
+- [ ] � **Multi-Tier Memory** - Short-term (sliding window) + Long-term (vector DB)
+- [ ] 🟢 **Conversation Memory** - Reference past conversations
+- [ ] � **Proactive Nudges** - "I see you've been here a while—need help?"
+
+---
+
+## Widget UX Improvements 💬 [Ongoing]
+
+- [ ] � **Typing Indicator / Streaming** - Real-time response feedback
+- [ ] � **Better Message Formatting** - Markdown, code blocks, links
+- [ ] 🟡 **Quick Reply Buttons** - Common follow-up actions
+- [ ] 🟡 **Dark/Light Mode** - Match host site theme
+- [ ] 🟢 **Mobile Optimization** - Better touch experience
+
+---
+
+## Observability & Debug 🔍 [Ongoing]
+
+- [ ] 🔴 **RAG Debug Mode** - Admin view showing retrieved chunks + similarity scores
+- [ ] 🟡 **Latency Tracing** - End-to-end request timing breakdown
+- [ ] 🟡 **LLM Token Dashboard** - Usage by tenant, conversation, model
+
+---
+
+## Demo & Testing 🧪 [Ongoing]
+
+- [ ] 🟡 **Mock Docs Demo Page** - Realistic B2B SaaS docs site for widget testing
+  - Replace test.html with professional demo environment
+  - Match target audience (SaaS documentation site)
+- [ ] 🟢 **Alternative UI Patterns** - Explore for future iterations
+  - Side panel (ChatGPT-style)
+  - Inline "Ask AI" for docs
+  - Command palette (⌘K style)
+
+---
+
+## Priority Legend
+- 🔴 **High Priority** - Critical for ICP, do first
+- 🟡 **Medium Priority** - Important, schedule soon
+- 🟢 **Nice to Have** - Defer to later phases
 
 ---
 
@@ -99,6 +169,15 @@ Evolution from basic chatbot to intelligent, platform-aware AI assistant.
 - [x] Fixed verification script for repeated runs
 - [x] Fixed dashboard localStorage cleanup on tenant delete
 
+### LLM Response & Embedding Fixes (Feb 7, 2026)
+- [x] Fixed LLM response desync issue - responses were referencing previous questions
+  - Updated `buildRAGPrompt` in `llm.service.ts` to explicitly instruct LLM to focus only on the LATEST user message
+- [x] Fixed deprecated `text-embedding-004` Gemini embedding model (404 error)
+  - Migrated to `gemini-embedding-001` using REST API with `outputDimensionality: 768`
+  - Preserved existing 768-dimension database schema
+
 ---
 
-*Last updated: January 21, 2026*
+*Target: Mid-Market B2B SaaS Support*
+*Last updated: February 7, 2026*
+

@@ -1,0 +1,59 @@
+⚠️ TEST MODE - Conversations may not be saved
+Chat with us
+--------
+
+User: Heelo
+
+AI: Hello there! Thanks for reaching out. I'm here to help with any questions you might have about our company's products or services. How can I assist you today?
+What is a product-led framework?
+Product-led growth is a go-to-market motion where the product sells itself through usage. Key characteristics include low-friction signup, fast time-to-value, and often built-in virality (e.g., inviting teammates) [Source 5].
+
+A product-led framework is suitable when your product has:
+*   **Low Average Order Value (ACV)**: Typically less than $1K/year [Source 3, Source 5].
+*   **Intuitive design**: Requires little education [Source 3, Source 5].
+*   **Single-user buying decision**: Not a complex committee [Source 3, Source 5].
+*   **Frequent usage**: People use it often [Source 3, Source 5].
+
+Examples of product-led motions include offering a free CRM or allowing teams to adopt organically [Source 1]. This motion can be layered with Engagement-led strategies for habit formation [Source 1].
+Sources:Document: GTM-latest Section: │ or │ │ or │ Marketing-led (inbound content attracted SMBs)  Produc...Document: GTM-latest Section: What This Research Taught Me I started here, curious about SDR agents...Document: GTM-latest Section: share → organic reach. Widget strategy. Locket proves home screen rea...Document: GTM-latest Section: 👤 Aastha Panta, June-August 2025 What started as curiosity about AI ...Document: GTM-latest Section: share → organic reach. user) Committee) ┌─────────────┐ ┌───────────...
+
+User: What about Labubu? Why did it spread?
+AI: Labubu's virality was triggered by Lisa (BLACKPINK) casually posting with one on Instagram, which generated massive organic interest and transformed it from an overlooked toy into a cultural phenomenon without any paid partnership [Source 2].
+
+Several factors contributed to its spread:
+*   **Spark** A credible, organic endorsement from Lisa's post.
+*   **Transition** Blind box mystery packaging encouraged unboxing moments.
+*   **Scarcity & FOMO** Limited drops created buzz around resales.
+*   **Cultural Lock-in** Bag charms became status signals, maintaining its relevance beyond initial hype.
+
+Key insights into Labubu's success include organic seeding (getting products into the right hands without paid partnerships), content-creation design (building unboxing/sharing moments into the product), and leveraging psychological triggers like mystery, collection completion, and status signaling. Its success came from accidental discovery rather than forced viral attempts [Source 2].
+Sources:Document: GTM-latest Section: The caution Go-to-Market Strategy 9 -- 9 of 25 -- Underdog stories ...Document: GTM-latest Section: What happened Labubu existed for years as a niche collectible. Then L...Document: GTM-latest Section: Distribution–Value Balance Who captures more value: you or the platfo...Document: GTM-latest Section: Time-to-signal Months Days/weeks Distribution Narrow, trust-based Bro...Document: GTM-latest Section: share → organic reach. user) Committee) ┌─────────────┐ ┌───────────...
+
+Diff betwn B2B and B2C sales?
+I don't have information about Labubu in my knowledge base. Is there something else I can help with?
+
+Regarding the difference between B2B and B2C sales, based on the provided information:
+
+*   **B2B Sales:**
+    *   Are typically "relationship-heavy" [Source 1].
+    *   Often involve "long sales cycles with multiple stakeholders" and "complex buying committees" [Source 5].
+    *   Can be "high-touch, personalized, consultative" [Source 5].
+    *   Are described as being harder for AI to replicate due to the relationship aspect [Source 1].
+    *   The author of the document felt B2B was like "studying from outside" [Source 3].
+
+*   **Consumer Growth (B2C):**
+    *   Involves "faster feedback loops, easier to see" [Source 3].
+    *   Can be characterized by "impulse purchases, fallen for tactics, churned from products" [Source 3].
+    *   The author of the document had personal experience with consumer products, having "lived on this side" [Source 3].
+    *   Product-Led Growth, which can apply to B2C, often involves a "single-user buying decision" and "low ACV" [Source 5].
+Sources:Document: GTM-latest Section: next B2B sales processes Sections 13 Can this be automated? Consu...Document: GTM-latest Section: What this revealed Understanding SDR agents meant understanding the e...Document: GTM-latest Section: intent prospects. Automates outbound research & prospecting. Top of F...Document: GTM-latest Section: share → organic reach. Widget strategy. Locket proves home screen rea...Document: GTM-latest Section: share → organic reach. user) Committee) ┌─────────────┐ ┌───────────...
+
+User: Wha isRecime app?
+AI: don't have information about the difference between B2B and B2C sales in my knowledge base. Is there something else I can help with?
+Sources:Document: GTM-latest Section: The question Did it risk downgrading brand perception with core audie...Document: GTM-latest Section: │ or │ │ or │ Marketing-led (inbound content attracted SMBs)  Produc...Document: GTM-latest Section: Time-to-signal Months Days/weeks Distribution Narrow, trust-based Bro...Document: GTM-latest Section: │ or │ │ or │ Own direct relationship with Build on multiple platfor...Document: GTM-latest Section: Target audience Gen Z "Authenticity Seekers" 1624 Craves genuine ...
+
+UserReci me app?
+AIReciMe is an app where users can curate and upload recipes, share them in group chats with collaborators, and return for updates, ratings, and meal inspiration. It focuses on savable, editable recipes rather than endless browsing, with user-generated tweaks helping content to evolve [Source 1].
+Sources:Document: GTM-latest Section: The question Did it risk downgrading brand perception with core audie...Document: GTM-latest Section: │ or │ │ or │ Marketing-led (inbound content attracted SMBs)  Produc...Document: GTM-latest Section: augmentation tools. This realization might explain why there are so m...Document: GTM-latest Section: Target audience Gen Z "Authenticity Seekers" 1624 Craves genuine ...Document: GTM-latest Section: Time-to-signal Months Days/weeks Distribution Narrow, trust-based Bro...
+--------------
+Type your message...

@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../llm/llm.service';
 import { EventsService } from '../events/events.service';
 import { ChunkerService } from './chunker.service';
+import { QueryProcessorService, ProcessedQuery, QueryType } from './query-processor.service';
 
 export interface Document {
     id: string;
@@ -46,6 +47,7 @@ export class KnowledgeService {
         private llmService: LLMService,
         private eventsService: EventsService,
         private chunkerService: ChunkerService,
+        private queryProcessor: QueryProcessorService,
     ) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
         const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -102,6 +104,7 @@ export class KnowledgeService {
             embedding: embeddings[index].embedding,
             metadata: {
                 documentTitle: title,
+                docType: options?.docType ?? 'faq',
                 section: chunk.section,
                 tokenCount: chunk.tokenCount,
                 chunkIndex: chunk.index,
@@ -139,13 +142,35 @@ export class KnowledgeService {
         limit = 5,
         conversationId?: string,
         correlationId?: string,
+        options?: { skipQueryProcessing?: boolean },
     ): Promise<SearchResult[]> {
         const searchStart = Date.now();
 
-        // 1. Generate embedding for the query
-        const { embedding } = await this.llmService.embed(query);
+        // 1. Process query for better retrieval (rewriting + classification)
+        let processed: ProcessedQuery;
+        if (options?.skipQueryProcessing) {
+            processed = {
+                originalQuery: query,
+                rewrittenQuery: query,
+                queryType: 'general',
+                confidence: 1.0,
+                expansions: [],
+                corrections: [],
+                skipped: true,
+                cached: false,
+            };
+        } else {
+            processed = await this.queryProcessor.processQuery(query);
+        }
 
-        // 2. Vector similarity search using pgvector
+        this.logger.debug(
+            `Query processed: "${query.substring(0, 30)}..." → "${processed.rewrittenQuery.substring(0, 30)}..." (type=${processed.queryType}, cached=${processed.cached})`
+        );
+
+        // 2. Generate embedding for the processed query
+        const { embedding } = await this.llmService.embed(processed.rewrittenQuery);
+
+        // 3. Vector similarity search using pgvector
         // The <=> operator is cosine distance
         const { data, error } = await this.supabase.rpc('match_documents', {
             query_embedding: embedding,
@@ -163,6 +188,14 @@ export class KnowledgeService {
                 'rag.searched',
                 {
                     query,
+                    rewrittenQuery: processed.rewrittenQuery,
+                    queryType: processed.queryType,
+                    queryProcessing: {
+                        skipped: processed.skipped,
+                        cached: processed.cached,
+                        expansions: processed.expansions,
+                        corrections: processed.corrections,
+                    },
                     error: error.message,
                     chunksRetrieved: 0,
                     latencyMs,
@@ -174,7 +207,7 @@ export class KnowledgeService {
             return [];
         }
 
-        // 3. Build rich chunk details for debugging
+        // 4. Build rich chunk details for debugging
         const chunks = (data ?? []).map((row: any) => ({
             section: row.metadata?.section || 'General',
             similarity: Math.round(row.similarity * 100) / 100,
@@ -182,12 +215,20 @@ export class KnowledgeService {
             tokenCount: row.metadata?.tokenCount,
         }));
 
-        // 4. Log the search with full RAG observability
+        // 5. Log the search with full RAG observability including query processing info
         await this.eventsService.log(
             tenantId,
             'rag.searched',
             {
                 query,
+                rewrittenQuery: processed.rewrittenQuery,
+                queryType: processed.queryType,
+                queryProcessing: {
+                    skipped: processed.skipped,
+                    cached: processed.cached,
+                    expansions: processed.expansions,
+                    corrections: processed.corrections,
+                },
                 chunksRetrieved: data?.length ?? 0,
                 topScore: data?.[0]?.similarity ?? 0,
                 chunks, // Full chunk details for debugging
@@ -197,13 +238,40 @@ export class KnowledgeService {
             correlationId,
         );
 
-        return (data ?? []).map((row: any) => ({
+        // 6. Apply doc type boost based on query classification
+        const results = (data ?? []).map((row: any) => ({
             chunkId: row.id,
             documentId: row.document_id,
             content: row.content,
             similarity: row.similarity,
             metadata: row.metadata,
         }));
+
+        return this.applyDocTypeBoost(results, processed.queryType);
+    }
+
+    /**
+     * Boost similarity scores for chunks whose doc type matches the query type.
+     * Re-sorts results by boosted similarity.
+     */
+    private applyDocTypeBoost(
+        results: SearchResult[],
+        queryType: QueryType,
+    ): SearchResult[] {
+        const preferred = QueryProcessorService.getPreferredDocTypes(queryType);
+        if (preferred.length === 0) return results;
+
+        const BOOST_FACTOR = 0.05; // 5% boost for matching doc types
+
+        const boosted = results.map(r => ({
+            ...r,
+            similarity: preferred.includes(r.metadata?.docType as string)
+                ? r.similarity + BOOST_FACTOR
+                : r.similarity,
+        }));
+
+        // Re-sort by boosted similarity (descending)
+        return boosted.sort((a, b) => b.similarity - a.similarity);
     }
 
     /**
@@ -250,6 +318,7 @@ export class KnowledgeService {
             embedding: embeddings[index].embedding,
             metadata: {
                 documentTitle: doc.title,
+                docType: doc.doc_type ?? 'faq',
                 section: chunk.section,
                 tokenCount: chunk.tokenCount,
                 chunkIndex: chunk.index,
