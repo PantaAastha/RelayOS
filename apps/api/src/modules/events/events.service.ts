@@ -14,6 +14,7 @@ export type EventType =
     | 'agent.completed'
     | 'agent.failed'
     | 'rag.searched'
+    | 'rag.hybrid_searched'
     | 'rag.cited'
     | 'rag.refused'
     | 'workflow.triggered'
@@ -199,6 +200,7 @@ export class EventsService {
             'agent.completed',
             'agent.failed',
             'rag.searched',
+            'rag.hybrid_searched',
             'rag.cited',
             'rag.refused',
             'workflow.triggered',

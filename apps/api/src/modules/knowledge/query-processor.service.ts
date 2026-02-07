@@ -98,13 +98,21 @@ export class QueryProcessorService {
      */
     private async processWithLLM(query: string): Promise<ProcessedQuery> {
         // Simple prompt that asks for just the rewritten query
-        const prompt = `Rewrite this search query to improve search results. Expand abbreviations, fix typos, add synonyms.
+        const prompt = `Rewrite this search query to improve search results.
 
-Examples:
-- "Diff betwn B2B and B2C?" → "Difference between B2B Business-to-Business and B2C Business-to-Consumer"
+RULES:
+- PRESERVE all specific names, product names, places, and key entities
+- Expand abbreviations and fix typos
+- Add relevant synonyms in parentheses where helpful
+- Return ONLY the rewritten query, nothing else
+
+Good examples:
+- "Diff betwn B2B and B2C?" → "Difference between B2B (Business-to-Business) and B2C (Business-to-Consumer)"
 - "API auth not wrking" → "API authentication authorization not working error"
-- "Wha isRecime app?" → "What is ReciMe recipe app application"
-- "Sho I entre vedic market?" → "Should I enter Vedic astrology market"
+- "What do Indians do on ChatGPT?" → "What do Indians (India users) do on ChatGPT (activities use cases)"
+
+Bad examples (NEVER do this):
+- "What do Indians do on ChatGPT?" → "What do people" (WRONG - removes key entities!)
 
 Query: "${query}"
 Rewritten:`;

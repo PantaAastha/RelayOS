@@ -142,8 +142,20 @@ export class KnowledgeService {
         limit = 5,
         conversationId?: string,
         correlationId?: string,
-        options?: { skipQueryProcessing?: boolean },
+        options?: { skipQueryProcessing?: boolean; useHybridSearch?: boolean },
     ): Promise<SearchResult[]> {
+        // If hybrid search is enabled, delegate to hybridSearch method
+        if (options?.useHybridSearch) {
+            return this.hybridSearch(
+                tenantId,
+                query,
+                limit,
+                conversationId,
+                correlationId,
+                { skipQueryProcessing: options?.skipQueryProcessing },
+            );
+        }
+
         const searchStart = Date.now();
 
         // 1. Process query for better retrieval (rewriting + classification)
@@ -272,6 +284,122 @@ export class KnowledgeService {
 
         // Re-sort by boosted similarity (descending)
         return boosted.sort((a, b) => b.similarity - a.similarity);
+    }
+
+    /**
+     * Hybrid search: combines semantic (vector) and keyword (full-text) search.
+     * Uses Reciprocal Rank Fusion (RRF) to merge results.
+     * Requires migration 0003_hybrid_search.sql to be applied.
+     */
+    async hybridSearch(
+        tenantId: string,
+        query: string,
+        limit = 5,
+        conversationId?: string,
+        correlationId?: string,
+        options?: { skipQueryProcessing?: boolean },
+    ): Promise<SearchResult[]> {
+        const searchStart = Date.now();
+
+        // 1. Process query for better retrieval
+        let processed: ProcessedQuery;
+        if (options?.skipQueryProcessing) {
+            processed = {
+                originalQuery: query,
+                rewrittenQuery: query,
+                queryType: 'general',
+                confidence: 1.0,
+                expansions: [],
+                corrections: [],
+                skipped: true,
+                cached: false,
+            };
+        } else {
+            processed = await this.queryProcessor.processQuery(query);
+        }
+
+        this.logger.debug(
+            `Hybrid search: "${query.substring(0, 30)}..." → "${processed.rewrittenQuery.substring(0, 30)}..." (type=${processed.queryType})`
+        );
+
+        // 2. Generate embedding for semantic search component
+        const { embedding } = await this.llmService.embed(processed.rewrittenQuery);
+
+        // 3. Call hybrid_search RPC (combines vector + full-text with RRF)
+        const { data, error } = await this.supabase.rpc('hybrid_search', {
+            query_text: processed.rewrittenQuery,
+            query_embedding: embedding,
+            match_tenant_id: tenantId,
+            match_count: limit,
+            rrf_k: 60, // RRF constant
+        });
+
+        const latencyMs = Date.now() - searchStart;
+
+        if (error) {
+            this.logger.error(`Hybrid search failed: ${error.message}`);
+            await this.eventsService.log(
+                tenantId,
+                'rag.hybrid_searched',
+                {
+                    query,
+                    rewrittenQuery: processed.rewrittenQuery,
+                    queryType: processed.queryType,
+                    error: error.message,
+                    chunksRetrieved: 0,
+                    latencyMs,
+                },
+                conversationId,
+                correlationId,
+            );
+            return [];
+        }
+
+        // 4. Build rich chunk details for debugging
+        const chunks = (data ?? []).map((row: any) => ({
+            section: row.metadata?.section || 'General',
+            semanticSimilarity: Math.round(row.semantic_similarity * 100) / 100,
+            keywordRank: row.keyword_rank,
+            rrfScore: Math.round(row.rrf_score * 1000) / 1000,
+            preview: row.content?.substring(0, 80) + '...',
+        }));
+
+        // 5. Log the hybrid search with full observability
+        await this.eventsService.log(
+            tenantId,
+            'rag.hybrid_searched',
+            {
+                query,
+                rewrittenQuery: processed.rewrittenQuery,
+                queryType: processed.queryType,
+                queryProcessing: {
+                    skipped: processed.skipped,
+                    cached: processed.cached,
+                },
+                chunksRetrieved: data?.length ?? 0,
+                topRrfScore: data?.[0]?.rrf_score ?? 0,
+                chunks,
+                latencyMs,
+            },
+            conversationId,
+            correlationId,
+        );
+
+        // 6. Apply doc type boost and return
+        const results = (data ?? []).map((row: any) => ({
+            chunkId: row.id,
+            documentId: row.document_id,
+            content: row.content,
+            similarity: row.rrf_score, // Use RRF score as the unified similarity
+            metadata: {
+                ...row.metadata,
+                semanticSimilarity: row.semantic_similarity,
+                keywordRank: row.keyword_rank,
+                rrfScore: row.rrf_score,
+            },
+        }));
+
+        return this.applyDocTypeBoost(results, processed.queryType);
     }
 
     /**

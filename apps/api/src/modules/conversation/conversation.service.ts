@@ -131,6 +131,7 @@ export class ConversationService {
                 5,
                 conversationId,
                 correlationId,
+                { useHybridSearch: true },
             );
         } catch (error) {
             // Log the error but continue without RAG context
