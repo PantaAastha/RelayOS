@@ -24,14 +24,21 @@
   - Boosts matching doc types during retrieval (5% similarity boost)
 
 ### Retrieval Improvements
-- [ ] 🔴 **Hybrid Search** - Combine semantic (vector) + keyword search
-- [ ] 🟡 **Re-ranking** - LLM re-ranks retrieved chunks by relevance
-- [ ] 🟢 **Chunk Metadata** - Enrich with section headers, doc type, recency
+- [x] 🔴 **Hybrid Search** - Combine semantic (vector) + keyword search ✅
+  - Added tsvector column with GIN index for full-text search
+  - Created `hybrid_search` RPC function using Reciprocal Rank Fusion (RRF)
+  - Results show both semantic similarity and keyword rank
+- [x] 🟡 **Re-ranking** - LLM re-ranks retrieved chunks by relevance ✅
+  - Fetches 2x chunks, LLM ranks by query relevance, returns top N
+  - Added `rerankChunks()` method in knowledge.service.ts
+- [x] 🟢 **Chunk Metadata** - Enrich with section headers, doc type, recency ✅
+  - Added doc timestamps (createdAt, updatedAt) via hybrid_search RPC
+  - 2% recency boost for documents updated within 30 days
 
 ### Answer Quality
-- [ ] � **Answer Grading** - Self-check if answer is supported by context
+- [ ] 🔴 **Answer Grading** - Self-check if answer is supported by context
 - [ ] 🟡 **Confidence Scores** - Show confidence, refuse gracefully if low
-- [ ] � **Feedback Loop** - 👍/👎 buttons → store for quality tracking
+- [ ] 🔴 **Feedback Loop** - 👍/👎 buttons → store for quality tracking
 
 ### Security & Guardrails 🔒
 - [ ] 🔴 **PII Scrubbing** - Filter sensitive data (emails, phones, SSNs) from responses
@@ -41,6 +48,9 @@
 ### Quality Assurance
 - [ ] 🔴 **Canonical Question Pack** - 20-30 test questions for regression
 - [ ] 🟡 **Promptfoo Integration** - Automated RAG quality testing
+
+### Future Observability
+- [ ] 🟢 **Re-rank Event Logging** - Log final re-ranked order for debugging
 
 ---
 
