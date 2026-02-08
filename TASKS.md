@@ -176,28 +176,11 @@
 ---
 
 ## Priority Legend
-- 🔴 **High Priority** - Critical for ICP, do first
-- 🟡 **Medium Priority** - Important, schedule soon
-- 🟢 **Nice to Have** - Defer to later phases
-
----
-
-## Completed ✅
-
-### Multi-Tenancy Fixes (Jan 21, 2026)
-- [x] Fixed `deleteTenant` FK constraint issue
-- [x] Fixed verification script for repeated runs
-- [x] Fixed dashboard localStorage cleanup on tenant delete
-
-### LLM Response & Embedding Fixes (Feb 7, 2026)
-- [x] Fixed LLM response desync issue - responses were referencing previous questions
-  - Updated `buildRAGPrompt` in `llm.service.ts` to explicitly instruct LLM to focus only on the LATEST user message
-- [x] Fixed deprecated `text-embedding-004` Gemini embedding model (404 error)
-  - Migrated to `gemini-embedding-001` using REST API with `outputDimensionality: 768`
-  - Preserved existing 768-dimension database schema
+- High Priority - Critical for ICP, do first
+- Medium Priority - Important, schedule soon
+- Nice to Have - Defer to later phases
 
 ---
 
 *Target: Mid-Market B2B SaaS Support*
-*Last updated: February 7, 2026*
-
+*Last updated: February 8, 2026*
