@@ -122,14 +122,26 @@ Rewritten:`;
                 { role: 'user', content: prompt }
             ], {
                 temperature: 0.3,
-                maxTokens: 150, // Only need enough for the rewritten query
+                maxTokens: 200, // Increased for longer queries
             });
 
             // Extract just the first line of the response (the rewritten query)
-            const rewrittenQuery = response.content
+            let rewrittenQuery = response.content
                 .split('\n')[0]  // Take first line only
-                .replace(/^["'\s]+|["'\s]+$/g, '')  // Trim quotes and whitespace
+                .replace(/^[\"'\\s]+|[\"'\\s]+$/g, '')  // Trim quotes and whitespace
                 .trim();
+
+            // Validation: if rewritten query looks incomplete, fall back to original
+            const looksIncomplete =
+                rewrittenQuery.length < query.length * 0.7 ||  // Much shorter than original
+                (rewrittenQuery.includes('(') && !rewrittenQuery.includes(')')) ||  // Unclosed paren
+                rewrittenQuery.endsWith('(') ||
+                !rewrittenQuery;
+
+            if (looksIncomplete) {
+                this.logger.warn(`[QUERY REWRITE] Incomplete rewrite detected, using original. Got: "${rewrittenQuery}"`);
+                rewrittenQuery = query;
+            }
 
             this.logger.log(`[QUERY REWRITE] "${query}" → "${rewrittenQuery}"`);
 

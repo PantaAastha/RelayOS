@@ -326,11 +326,13 @@ export class KnowledgeService {
         const { embedding } = await this.llmService.embed(processed.rewrittenQuery);
 
         // 3. Call hybrid_search RPC (combines vector + full-text with RRF)
+        // Fetch 2x chunks for re-ranking, then return top `limit` after re-ranking
+        const fetchCount = Math.min(limit * 2, 10);
         const { data, error } = await this.supabase.rpc('hybrid_search', {
             query_text: processed.rewrittenQuery,
             query_embedding: embedding,
             match_tenant_id: tenantId,
-            match_count: limit,
+            match_count: fetchCount,
             rrf_k: 60, // RRF constant
         });
 
@@ -385,7 +387,7 @@ export class KnowledgeService {
             correlationId,
         );
 
-        // 6. Apply doc type boost and return
+        // 6. Apply doc type boost
         const results = (data ?? []).map((row: any) => ({
             chunkId: row.id,
             documentId: row.document_id,
@@ -396,10 +398,112 @@ export class KnowledgeService {
                 semanticSimilarity: row.semantic_similarity,
                 keywordRank: row.keyword_rank,
                 rrfScore: row.rrf_score,
+                docCreatedAt: row.doc_created_at,
+                docUpdatedAt: row.doc_updated_at,
             },
         }));
 
-        return this.applyDocTypeBoost(results, processed.queryType);
+        // 6a. Apply recency boost (documents updated in last 30 days get a small boost)
+        const recencyBoosted = results.map((r: SearchResult) => {
+            const updatedAt = r.metadata?.docUpdatedAt;
+            if (updatedAt) {
+                const ageInDays = (Date.now() - new Date(updatedAt as string).getTime()) / (1000 * 60 * 60 * 24);
+                const recencyBoost = ageInDays <= 30 ? 0.02 : 0; // 2% boost for recent docs
+                return {
+                    ...r,
+                    similarity: r.similarity + recencyBoost,
+                    metadata: { ...r.metadata, ageInDays: Math.round(ageInDays), recencyBoost },
+                };
+            }
+            return r;
+        });
+
+        const boosted = this.applyDocTypeBoost(recencyBoosted, processed.queryType);
+
+        // 7. Re-rank using LLM (if we have enough chunks)
+        if (boosted.length >= 3) {
+            return this.rerankChunks(processed.rewrittenQuery, boosted, limit);
+        }
+
+        return boosted;
+    }
+
+    /**
+     * Re-rank chunks using LLM based on actual relevance to the query.
+     * Takes more chunks than needed, re-orders by relevance, returns top N.
+     */
+    private async rerankChunks(
+        query: string,
+        chunks: SearchResult[],
+        topN: number,
+    ): Promise<SearchResult[]> {
+        if (chunks.length === 0) return chunks;
+
+        // Build a numbered list of chunk previews for the LLM
+        const chunkPreviews = chunks
+            .map((c, i) => `${i + 1}. ${c.content.substring(0, 150).replace(/\n/g, ' ')}...`)
+            .join('\n');
+
+        const prompt = `Given this search query: "${query}"
+
+Rank these text chunks from MOST to LEAST relevant. Return ONLY the numbers in order, comma-separated.
+
+Chunks:
+${chunkPreviews}
+
+Most to least relevant (numbers only):`;
+
+        try {
+            const response = await this.llmService.complete(
+                [{ role: 'user', content: prompt }],
+                { temperature: 0.1, maxTokens: 50 }
+            );
+
+            // Parse the ranking from LLM response (e.g., "3, 1, 5, 2, 4")
+            const ranking = response.content
+                .split(/[,\s]+/)
+                .map(s => parseInt(s.trim(), 10))
+                .filter(n => !isNaN(n) && n >= 1 && n <= chunks.length);
+
+            if (ranking.length === 0) {
+                this.logger.warn('[RERANK] Failed to parse LLM ranking, using original order');
+                return chunks.slice(0, topN);
+            }
+
+            // Reorder chunks based on LLM ranking
+            const reranked: SearchResult[] = [];
+            const seen = new Set<number>();
+
+            for (const idx of ranking) {
+                if (!seen.has(idx) && chunks[idx - 1]) {
+                    reranked.push({
+                        ...chunks[idx - 1],
+                        metadata: {
+                            ...chunks[idx - 1].metadata,
+                            rerankPosition: reranked.length + 1,
+                            originalPosition: idx,
+                        },
+                    });
+                    seen.add(idx);
+                }
+                if (reranked.length >= topN) break;
+            }
+
+            // If LLM didn't rank all chunks, append remaining in original order
+            if (reranked.length < topN) {
+                for (let i = 0; i < chunks.length && reranked.length < topN; i++) {
+                    if (!seen.has(i + 1)) {
+                        reranked.push(chunks[i]);
+                    }
+                }
+            }
+
+            this.logger.log(`[RERANK] Re-ordered ${chunks.length} chunks → top ${reranked.length}`);
+            return reranked;
+        } catch (error) {
+            this.logger.error(`[RERANK] Failed: ${error}`);
+            return chunks.slice(0, topN);
+        }
     }
 
     /**
