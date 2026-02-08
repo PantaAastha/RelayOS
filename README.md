@@ -1,75 +1,150 @@
 # RelayOS
 
-A multi-tenant support + sales copilot OS you can embed on any website (and later WhatsApp) to answer customer questions using approved company knowledge (RAG with citations) and run workflows via n8n.
+A multi-tenant AI support copilot that can be embedded on any website. RelayOS uses Retrieval-Augmented Generation (RAG) to answer customer questions using company-approved knowledge bases, with full citations and confidence scoring.
 
-## Project Structure
+## Vision
+
+Most B2B SaaS companies struggle with support at scale. Documentation gets outdated, support teams get overwhelmed, and customers wait for answers that exist somewhere in the knowledge base. RelayOS solves this by providing an embeddable AI assistant that:
+
+- Answers customer questions instantly using your existing documentation
+- Always cites sources so users can verify answers
+- Grades its own answers for confidence and flags uncertain responses
+- Collects user feedback for continuous improvement
+- Routes to human agents when it cannot help
+
+The target market is mid-market B2B SaaS companies (20-200 employees, $5M-$50M ARR) who need to scale their support without proportionally scaling their team.
+
+---
+
+## Current Status
+
+RelayOS is currently in active development. Phase 1 (RAG Quality and Observability) is largely complete.
+
+### Implemented Features
+
+**RAG Pipeline**
+- Hybrid search combining semantic (vector) similarity with keyword matching using Reciprocal Rank Fusion
+- LLM-based query rewriting to expand abbreviations, fix typos, and clarify intent
+- Query classification to detect query type (factual, procedural, troubleshooting) and boost relevant document types
+- LLM re-ranking of retrieved chunks to improve relevance before generation
+- Chunk metadata enrichment with section headers, document type, and recency scoring
+
+**Answer Quality**
+- Answer grading using LLM self-evaluation (SUPPORTED / PARTIAL / UNSUPPORTED)
+- Confidence scores exposed in API responses and displayed in the widget
+- User feedback loop with thumbs up/down buttons stored for analytics
+- Automatic disclaimers for low-confidence answers
+
+**Multi-Tenancy**
+- Full tenant isolation with row-level security in PostgreSQL
+- Tenant-specific document ingestion and chunking
+- Per-tenant configuration and API key management
+
+**Observability**
+- Structured event logging for conversation lifecycle, RAG operations, and handoffs
+- Correlation IDs for end-to-end request tracing
+- Event types: conversation.started, message.received, rag.searched, rag.graded, rag.feedback, agent.completed, handoff.requested, and more
+
+**Widget**
+- Embeddable React chat widget with customizable styling
+- Citation display with source links
+- Conversation persistence with session restoration
+- Human handoff capability via n8n workflows
+
+### Roadmap
+
+See [TASKS.md](./TASKS.md) for the full enhancement roadmap. Upcoming phases include:
+
+- Phase 2: Support Intelligence (intent classification, escalation detection, context engineering)
+- Phase 3: Ticketing Integrations (Zendesk, Intercom, Freshdesk via n8n)
+- Phase 4: Analytics and ROI Dashboard (deflection rate, resolution time, top questions)
+- Phase 5: Agentic Capabilities (tool use, action framework, multi-agent architecture)
+
+---
+
+## Architecture
 
 ```
 relayos/
 ├── apps/
 │   ├── api/          # NestJS backend API
-│   ├── widget/       # Embeddable React chat widget
+│   │   └── modules/
+│   │       ├── conversation/   # Chat, feedback, handoff
+│   │       ├── knowledge/      # RAG search, ingestion, re-ranking
+│   │       ├── llm/            # LLM abstraction (Gemini, OpenAI)
+│   │       ├── events/         # Structured logging
+│   │       ├── tenants/        # Multi-tenant management
+│   │       └── n8n/            # Workflow triggers
+│   ├── widget/       # Embeddable React chat widget (Vite)
 │   └── admin/        # Next.js admin dashboard
 ├── packages/
+│   ├── db/           # Database migrations and schema
 │   ├── types/        # Shared TypeScript types
-│   ├── db/           # Drizzle schema & migrations
-│   ├── ui/           # Shared UI components
-│   ├── eslint-config/
-│   └── typescript-config/
-└── n8n/              # n8n workflow exports
+│   └── ui/           # Shared UI components
+└── n8n/              # n8n workflow templates
 ```
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend API | NestJS (Node.js) |
+| Database | PostgreSQL with pgvector (Supabase) |
+| Vector Search | pgvector with hybrid search RPC |
+| LLM Integration | Gemini, OpenAI (configurable) |
+| Widget | React with Vite |
+| Admin Dashboard | Next.js 16 |
+| Workflows | n8n (self-hosted) |
+| Deployment | Docker, Docker Compose |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm (comes with Node.js)
-- Supabase project (for PostgreSQL + pgvector + Auth)
+- Node.js 20+
+- Supabase project (PostgreSQL + pgvector + Auth)
+- LLM API key (Gemini or OpenAI)
 
 ### Installation
 
 ```bash
-# Install all dependencies
+# Clone and install dependencies
+git clone <repo-url>
+cd relayos
 npm install
 
-# Set up environment variables
+# Configure environment
 cp .env.example .env.local
-# Edit .env.local with your Supabase credentials
+# Edit .env.local with your credentials
 ```
 
 ### Development
 
 ```bash
-# Start all services in development mode
+# Start all services
 npm run dev
 
-# Start just the API
-npm run dev --filter=api
-
-# Start just the widget
-npm run dev --filter=@relayos/widget
-
-# Start just the admin dashboard
-npm run dev --filter=admin
+# Or start individually
+npm run dev --filter=api       # API on :3001
+npm run dev --filter=admin     # Admin on :3000
+cd apps/widget && npm run dev  # Widget dev server
 ```
 
-### Database
+### Database Setup
 
-```bash
-# Generate migration from schema changes
-npm run db:generate --filter=@relayos/db
-
-# Push schema to database (dev only)
-npm run db:push --filter=@relayos/db
-
-# Run migrations (production)
-npm run db:migrate --filter=@relayos/db
+Run migrations in Supabase SQL Editor in order:
+```
+packages/db/migrations/0001_initial_schema.sql
+packages/db/migrations/0002_add_hybrid_search.sql
+packages/db/migrations/0003_hybrid_search_rpc.sql
+packages/db/migrations/0004_doc_timestamps.sql
+packages/db/migrations/0005_message_feedback.sql
+packages/db/migrations/0006_message_grading.sql
 ```
 
 ### Widget Embedding
-
-Once built, embed the widget on any website:
 
 ```html
 <script 
@@ -81,25 +156,20 @@ Once built, embed the widget on any website:
 ></script>
 ```
 
-Or initialize programmatically:
+---
 
-```javascript
-window.RelayOS.init({
-  apiUrl: 'https://api.relayos.com',
-  tenantId: 'your-tenant-id',
-  position: 'bottom-right',
-  primaryColor: '#2563eb',
-  title: 'Chat with us',
-});
+## Docker
 
-// Open/close programmatically
-window.RelayOS.open();
-window.RelayOS.close();
+```bash
+# Build and run all services
+docker-compose up --build
+
+# Build individual services
+docker build -t relayos-api -f apps/api/Dockerfile .
+docker build -t relayos-admin -f apps/admin/Dockerfile .
 ```
 
-## Architecture
-
-See [implementation_plan.md](./docs/implementation_plan.md) for full architecture details.
+---
 
 ## License
 
