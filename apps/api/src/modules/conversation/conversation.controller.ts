@@ -24,6 +24,12 @@ interface EscalateDto {
     reason?: string;
 }
 
+interface FeedbackDto {
+    messageId: string;
+    type: 'positive' | 'negative';
+    comment?: string;
+}
+
 @Controller('conversation')
 export class ConversationController {
     constructor(private conversationService: ConversationService) { }
@@ -127,5 +133,31 @@ export class ConversationController {
         }
 
         return conversation;
+    }
+
+    /**
+     * POST /conversation/feedback - Submit thumbs up/down feedback on a message
+     */
+    @Post('feedback')
+    async submitFeedback(
+        @Headers('x-tenant-id') tenantId: string,
+        @Body() dto: FeedbackDto,
+    ) {
+        if (!tenantId) {
+            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        }
+
+        if (!dto.messageId || !dto.type) {
+            throw new HttpException('messageId and type are required', HttpStatus.BAD_REQUEST);
+        }
+
+        const result = await this.conversationService.submitFeedback(
+            tenantId,
+            dto.messageId,
+            dto.type,
+            dto.comment,
+        );
+
+        return result;
     }
 }

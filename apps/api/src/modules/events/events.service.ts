@@ -17,6 +17,8 @@ export type EventType =
     | 'rag.hybrid_searched'
     | 'rag.cited'
     | 'rag.refused'
+    | 'rag.graded'
+    | 'rag.feedback'
     | 'workflow.triggered'
     | 'workflow.completed'
     | 'workflow.failed'
@@ -203,6 +205,8 @@ export class EventsService {
             'rag.hybrid_searched',
             'rag.cited',
             'rag.refused',
+            'rag.graded',
+            'rag.feedback',
             'workflow.triggered',
             'workflow.completed',
             'workflow.failed',

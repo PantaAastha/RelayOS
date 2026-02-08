@@ -90,6 +90,8 @@ export class ConversationService {
         response: {
             content: string;
             citations: Array<{ docId: string; chunkId: string; text: string }>;
+            confidence: number;
+            grade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED';
         };
     }> {
         const requestStart = Date.now();
@@ -217,6 +219,28 @@ export class ConversationService {
             }))
             : [];
 
+        // 8a. Grade the answer for quality
+        const grading = await this.gradeAnswer(context, response.content);
+
+        // Log grading result
+        await this.eventsService.log(
+            tenantId,
+            'rag.graded',
+            {
+                grade: grading.grade,
+                confidence: grading.confidence,
+                reasoning: grading.reasoning,
+            },
+            conversationId,
+            correlationId,
+        );
+
+        // If UNSUPPORTED, add disclaimer to response
+        let finalContent = response.content;
+        if (grading.grade === 'UNSUPPORTED' && grading.confidence > 0.7) {
+            finalContent = `⚠️ *This response may not be fully supported by our knowledge base.*\n\n${response.content}`;
+        }
+
         // Log based on whether we had relevant context
         if (searchResults.length > 0) {
             await this.eventsService.log(
@@ -240,10 +264,12 @@ export class ConversationService {
             .insert({
                 conversation_id: conversationId,
                 role: 'assistant',
-                content: response.content,
+                content: finalContent,
                 citations,
                 tokens_used: response.tokensUsed.total,
                 model: response.model,
+                confidence: grading.confidence,
+                grade: grading.grade,
             })
             .select('id')
             .single();
@@ -257,7 +283,7 @@ export class ConversationService {
             'agent.completed',
             {
                 agentType: 'knowledge',
-                output: response.content.substring(0, 200),
+                output: finalContent.substring(0, 200),
                 tokensUsed: response.tokensUsed.total,
                 durationMs,
             },
@@ -275,10 +301,97 @@ export class ConversationService {
             conversationId,
             messageId: assistantMsg.id,
             response: {
-                content: response.content,
+                content: finalContent,
                 citations,
+                confidence: grading.confidence,
+                grade: grading.grade,
             },
         };
+    }
+
+    /**
+     * Grade an answer to check if it's supported by the retrieved context.
+     * Returns: grade, confidence, and reasoning
+     */
+    private async gradeAnswer(
+        context: string[],
+        answer: string,
+    ): Promise<{ grade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED'; confidence: number; reasoning: string }> {
+        if (context.length === 0) {
+            return { grade: 'UNSUPPORTED', confidence: 0.9, reasoning: 'No context provided' };
+        }
+
+        const contextText = context.map((c, i) => `[${i + 1}] ${c.substring(0, 300)}`).join('\n\n');
+
+        const prompt = `You are a grading assistant. Determine if the answer is supported by the provided context.
+
+CONTEXT:
+${contextText}
+
+ANSWER:
+${answer}
+
+Grade the answer:
+- SUPPORTED: Answer is fully backed by the context
+- PARTIAL: Some claims lack clear support from context
+- UNSUPPORTED: Answer contains speculation or claims not in context
+
+Respond in this exact format:
+GRADE: [SUPPORTED|PARTIAL|UNSUPPORTED]
+CONFIDENCE: [0.0-1.0]
+REASON: [one sentence explanation]`;
+
+        try {
+            const response = await this.llmService.complete(
+                [{ role: 'user', content: prompt }],
+                { temperature: 0.1, maxTokens: 100 }
+            );
+
+            // Parse response - be flexible with format
+            const content = response.content;
+            let grade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' = 'PARTIAL';
+            let confidence = 0.5;
+            let reasoning = 'Answer appears partially supported';
+
+            // Try to find grade anywhere in response
+            const upperContent = content.toUpperCase();
+            if (upperContent.includes('SUPPORTED') && !upperContent.includes('UNSUPPORTED') && !upperContent.includes('PARTIAL')) {
+                grade = 'SUPPORTED';
+                confidence = 0.85;
+                reasoning = 'Answer is well supported by context';
+            } else if (upperContent.includes('UNSUPPORTED')) {
+                grade = 'UNSUPPORTED';
+                confidence = 0.8;
+                reasoning = 'Answer contains claims not in context';
+            } else if (upperContent.includes('PARTIAL')) {
+                grade = 'PARTIAL';
+                confidence = 0.7;
+                reasoning = 'Some claims lack clear support';
+            }
+
+            // Try to extract confidence if explicitly stated
+            const confMatch = content.match(/CONFIDENCE[:\s]+([0-9.]+)/i);
+            if (confMatch) {
+                const c = parseFloat(confMatch[1]);
+                if (!isNaN(c) && c >= 0 && c <= 1) {
+                    confidence = c;
+                }
+            }
+
+            // Try to extract reasoning
+            const reasonMatch = content.match(/REASON[:\s]+(.+)/i);
+            if (reasonMatch) {
+                reasoning = reasonMatch[1].trim().substring(0, 100);
+            }
+
+            console.log(`[GRADING] Raw response: ${content.substring(0, 100)}`);
+            console.log(`[GRADING] Parsed: grade=${grade}, confidence=${confidence}`);
+
+            return { grade, confidence, reasoning };
+        } catch (error) {
+            console.error('[GRADING] Failed to grade answer:', error);
+            return { grade: 'PARTIAL', confidence: 0.5, reasoning: 'Grading failed' };
+        }
     }
 
     /**
@@ -375,6 +488,8 @@ export class ConversationService {
                 role: m.role,
                 content: m.content,
                 citations: m.citations,
+                confidence: m.confidence,
+                grade: m.grade,
             })),
         };
     }
@@ -452,6 +567,44 @@ export class ConversationService {
             conversationsCount: convsResult.count || 0,
             messagesCount: msgsResult.count || 0,
         };
+    }
+
+    /**
+     * Submit feedback (thumbs up/down) on a message
+     */
+    async submitFeedback(
+        tenantId: string,
+        messageId: string,
+        type: 'positive' | 'negative',
+        comment?: string,
+    ): Promise<{ success: boolean }> {
+        // Insert feedback into message_feedback table
+        const { error } = await this.supabase
+            .from('message_feedback')
+            .insert({
+                message_id: messageId,
+                tenant_id: tenantId,
+                feedback_type: type,
+                comment,
+            });
+
+        if (error) {
+            console.error('[FEEDBACK] Failed to save:', error);
+            throw new Error(`Failed to save feedback: ${error.message}`);
+        }
+
+        // Log the feedback event
+        await this.eventsService.log(
+            tenantId,
+            'rag.feedback',
+            {
+                messageId,
+                feedbackType: type,
+                comment: comment?.substring(0, 100),
+            },
+        );
+
+        return { success: true };
     }
 
     private buildSystemPrompt(tenantId: string): string {

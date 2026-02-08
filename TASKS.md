@@ -36,9 +36,15 @@
   - 2% recency boost for documents updated within 30 days
 
 ### Answer Quality
-- [ ] 🔴 **Answer Grading** - Self-check if answer is supported by context
-- [ ] 🟡 **Confidence Scores** - Show confidence, refuse gracefully if low
-- [ ] 🔴 **Feedback Loop** - 👍/👎 buttons → store for quality tracking
+- [x] 🔴 **Answer Grading** - Self-check if answer is supported by context ✅
+  - Added `gradeAnswer()` method using LLM to verify answers
+  - Grades: SUPPORTED, PARTIAL, UNSUPPORTED with confidence score
+- [x] 🟡 **Confidence Scores** - Show confidence, refuse gracefully if low ✅
+  - Confidence included in API response and stored in messages table
+  - Disclaimer added for UNSUPPORTED answers
+- [x] 🔴 **Feedback Loop** - 👍/👎 buttons → store for quality tracking ✅
+  - Added `message_feedback` table and `/conversation/feedback` endpoint
+  - Frontend buttons in conversation detail page
 
 ### Security & Guardrails 🔒
 - [ ] 🔴 **PII Scrubbing** - Filter sensitive data (emails, phones, SSNs) from responses
@@ -51,6 +57,10 @@
 
 ### Future Observability
 - [ ] 🟢 **Re-rank Event Logging** - Log final re-ranked order for debugging
+- [ ] 🟡 **RAG Quality Dashboard** - Visualize feedback, grading, and event data
+  - Aggregate positive/negative feedback rates per tenant
+  - Track SUPPORTED/PARTIAL/UNSUPPORTED distribution
+  - Use events (rag.graded, rag.feedback, rag.searched) for insights
 
 ---
 
@@ -65,8 +75,8 @@
 - [ ] 🟡 **Session History** - Maintain conversation context across messages
 
 ### Intent & Routing
-- [ ] � **Intent Classification** - Detect: Support? Billing? Feature Request? Bug?
-- [ ] � **Escalation Intelligence** - Detect frustration → proactive handoff
+- [ ] 🔴 **Intent Classification** - Detect: Support? Billing? Feature Request? Bug?
+- [ ] 🔴 **Escalation Intelligence** - Detect frustration → proactive handoff
 - [ ] 🟡 **Suggested Questions** - Show relevant starters based on page/docs
 - [ ] 🟡 **Follow-up Suggestions** - Suggest related questions after answer
 

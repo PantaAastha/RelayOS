@@ -7,6 +7,8 @@ interface Message {
     role: 'user' | 'assistant' | 'system';
     content: string;
     citations?: Array<{ text: string; sourceUrl?: string }>;
+    confidence?: number;
+    grade?: string;
 }
 
 interface ChatWindowProps {
@@ -86,6 +88,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 role: 'assistant',
                 content: data.response.content,
                 citations: data.response.citations,
+                confidence: data.response.confidence,
+                grade: data.response.grade,
             };
             onMessagesUpdate([...updatedMessages, assistantMessage]);
         } catch (err) {
@@ -170,7 +174,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     </div>
                 )}
                 {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
+                    <MessageBubble key={msg.id} message={msg} apiUrl={apiUrl} tenantId={tenantId} />
                 ))}
                 {isLoading && (
                     <div className="typing-indicator">

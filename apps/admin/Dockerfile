@@ -47,17 +47,17 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy public assets
 COPY --from=builder /app/apps/admin/public ./public
 
-# Copy the standalone output - server.js and package.json
-COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone/server.js ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone/package.json ./
+# Copy the standalone output - In monorepo, files are nested at apps/admin/ within standalone
+COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone/apps/admin/server.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone/apps/admin/package.json ./
 
-# Copy .next folder from standalone
-COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone/.next ./.next
+# Copy .next folder from standalone (also nested)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone/apps/admin/.next ./.next
 
 # Copy static files
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/static ./.next/static
 
-# Copy node_modules from deps (required for server.js)
+# Copy node_modules from standalone (at root level, contains workspace deps)
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs

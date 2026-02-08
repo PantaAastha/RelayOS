@@ -11,6 +11,8 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     citations?: Array<{ docId: string; chunkId: string; text: string }>;
+    confidence?: number;
+    grade?: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED';
 }
 
 interface Conversation {
@@ -26,6 +28,7 @@ export default function ConversationDetailPage() {
 
     const [conversation, setConversation] = useState<Conversation | null>(null);
     const [loading, setLoading] = useState(true);
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState<Record<string, 'positive' | 'negative'>>({});
 
     useEffect(() => {
         const fetchConversation = async () => {
@@ -43,6 +46,27 @@ export default function ConversationDetailPage() {
         fetchConversation();
     }, [conversationId]);
 
+    const submitFeedback = async (messageId: string, type: 'positive' | 'negative') => {
+        if (feedbackSubmitted[messageId]) return; // Already submitted
+
+        try {
+            const res = await fetch(`${API_URL}/conversation/feedback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-tenant-id': conversation?.tenantId || '',
+                },
+                body: JSON.stringify({ messageId, type }),
+            });
+
+            if (res.ok) {
+                setFeedbackSubmitted(prev => ({ ...prev, [messageId]: type }));
+            }
+        } catch (error) {
+            console.error('Failed to submit feedback:', error);
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'active':
@@ -54,6 +78,45 @@ export default function ConversationDetailPage() {
             default:
                 return <span className="badge">{status}</span>;
         }
+    };
+
+    const getConfidenceBadge = (confidence?: number, grade?: string) => {
+        // Show N/A if no confidence data
+        if (confidence === undefined || confidence === null) {
+            return (
+                <span style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(128, 128, 128, 0.5)',
+                    color: 'white',
+                    marginLeft: '8px',
+                }}>
+                    N/A
+                </span>
+            );
+        }
+
+        const percent = Math.round(confidence * 100);
+        let color = 'rgba(100, 200, 100, 0.8)'; // Green
+        if (grade === 'UNSUPPORTED' || percent < 50) {
+            color = 'rgba(200, 100, 100, 0.8)'; // Red
+        } else if (grade === 'PARTIAL' || percent < 70) {
+            color = 'rgba(200, 180, 100, 0.8)'; // Yellow
+        }
+
+        return (
+            <span style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                background: color,
+                color: 'white',
+                marginLeft: '8px',
+            }}>
+                {percent}% confident
+            </span>
+        );
     };
 
     if (loading) {
@@ -99,7 +162,44 @@ export default function ConversationDetailPage() {
                 <div className="message-list">
                     {conversation.messages.map((msg) => (
                         <div key={msg.id} className={`message message-${msg.role}`}>
-                            <div>{msg.content}</div>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                <div style={{ flex: 1 }}>{msg.content}</div>
+                                {msg.role === 'assistant' && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '12px', flexShrink: 0 }}>
+                                        {getConfidenceBadge(msg.confidence, msg.grade)}
+                                        <button
+                                            onClick={() => submitFeedback(msg.id, 'positive')}
+                                            disabled={!!feedbackSubmitted[msg.id]}
+                                            style={{
+                                                background: feedbackSubmitted[msg.id] === 'positive' ? 'rgba(100, 200, 100, 0.3)' : 'transparent',
+                                                border: 'none',
+                                                cursor: feedbackSubmitted[msg.id] ? 'default' : 'pointer',
+                                                fontSize: '16px',
+                                                padding: '4px',
+                                                opacity: feedbackSubmitted[msg.id] && feedbackSubmitted[msg.id] !== 'positive' ? 0.3 : 1,
+                                            }}
+                                            title="Helpful"
+                                        >
+                                            👍
+                                        </button>
+                                        <button
+                                            onClick={() => submitFeedback(msg.id, 'negative')}
+                                            disabled={!!feedbackSubmitted[msg.id]}
+                                            style={{
+                                                background: feedbackSubmitted[msg.id] === 'negative' ? 'rgba(200, 100, 100, 0.3)' : 'transparent',
+                                                border: 'none',
+                                                cursor: feedbackSubmitted[msg.id] ? 'default' : 'pointer',
+                                                fontSize: '16px',
+                                                padding: '4px',
+                                                opacity: feedbackSubmitted[msg.id] && feedbackSubmitted[msg.id] !== 'negative' ? 0.3 : 1,
+                                            }}
+                                            title="Not helpful"
+                                        >
+                                            👎
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             {msg.citations && msg.citations.length > 0 && (
                                 <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                                     <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
