@@ -8,6 +8,7 @@ import { LLMService } from '../llm/llm.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { EventsService } from '../events/events.service';
 import { N8nService } from '../n8n/n8n.service';
+import { GuardrailsService } from '../guardrails/guardrails.service';
 
 export interface Message {
     id: string;
@@ -33,6 +34,7 @@ export class ConversationService {
         private knowledgeService: KnowledgeService,
         private eventsService: EventsService,
         private n8nService: N8nService,
+        private guardrailsService: GuardrailsService,
     ) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
         const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -101,13 +103,65 @@ export class ConversationService {
             conversationId = await this.createConversation(tenantId);
         }
 
-        // 2. Save user message
+        // 1a. GUARDRAILS: Check input for injection + scrub PII
+        const inputResult = await this.guardrailsService.processInput(
+            userMessage,
+            tenantId,
+            conversationId,
+        );
+
+        // If blocked (injection detected), return safe rejection
+        if (!inputResult.allowed) {
+            // Log the blocked request
+            console.warn(`[GUARDRAILS] Blocked request: ${inputResult.blockReason}`);
+
+            // Save a sanitized user message for audit trail
+            const { data: blockedMsg } = await this.supabase
+                .from('messages')
+                .insert({
+                    conversation_id: conversationId,
+                    role: 'user',
+                    content: '[Message blocked by security filters]',
+                })
+                .select('id')
+                .single();
+
+            // Save rejection response
+            const rejectionContent = "I'm sorry, but I can't process that request. Is there something else I can help you with?";
+            const { data: rejectMsg } = await this.supabase
+                .from('messages')
+                .insert({
+                    conversation_id: conversationId,
+                    role: 'assistant',
+                    content: rejectionContent,
+                    confidence: 1.0,
+                    grade: 'SUPPORTED',
+                })
+                .select('id')
+                .single();
+
+            return {
+                conversationId,
+                messageId: rejectMsg?.id || blockedMsg?.id || '',
+                response: {
+                    content: rejectionContent,
+                    citations: [],
+                    confidence: 1.0,
+                    grade: 'SUPPORTED',
+                },
+            };
+        }
+
+        // Use sanitized content (PII scrubbed) for further processing
+        const sanitizedUserMessage = inputResult.sanitizedContent;
+
+        // 2. Save user message (using sanitized content)
         const { data: userMsg, error: userMsgError } = await this.supabase
             .from('messages')
             .insert({
                 conversation_id: conversationId,
                 role: 'user',
-                content: userMessage,
+                content: sanitizedUserMessage,
             })
             .select('id')
             .single();
@@ -119,7 +173,7 @@ export class ConversationService {
         await this.eventsService.log(
             tenantId,
             'message.received',
-            { messageId: userMsg.id, content: userMessage, role: 'user' },
+            { messageId: userMsg.id, content: sanitizedUserMessage, role: 'user', piiDetected: inputResult.piiDetected },
             conversationId,
             correlationId,
         );
@@ -129,7 +183,7 @@ export class ConversationService {
         try {
             searchResults = await this.knowledgeService.search(
                 tenantId,
-                userMessage,
+                sanitizedUserMessage,
                 5,
                 conversationId,
                 correlationId,
@@ -145,7 +199,7 @@ export class ConversationService {
                 {
                     reason: 'search_error',
                     error: errorMessage,
-                    query: userMessage.substring(0, 100),
+                    query: sanitizedUserMessage.substring(0, 100),
                 },
                 conversationId,
                 correlationId,
@@ -168,7 +222,7 @@ export class ConversationService {
         await this.eventsService.log(
             tenantId,
             'agent.invoked',
-            { agentType: 'knowledge', input: userMessage },
+            { agentType: 'knowledge', input: sanitizedUserMessage },
             conversationId,
         );
 
@@ -176,7 +230,7 @@ export class ConversationService {
         const messages = this.llmService.buildRAGPrompt(
             systemPrompt,
             context,
-            userMessage,
+            sanitizedUserMessage,
         );
 
         // Add conversation history
@@ -240,6 +294,14 @@ export class ConversationService {
         if (grading.grade === 'UNSUPPORTED' && grading.confidence > 0.7) {
             finalContent = `⚠️ *This response may not be fully supported by our knowledge base.*\n\n${response.content}`;
         }
+
+        // 8b. GUARDRAILS: Process output (PII scrubbing + persona validation)
+        const outputResult = await this.guardrailsService.processOutput(
+            finalContent,
+            tenantId,
+            conversationId,
+        );
+        finalContent = outputResult.content;
 
         // Log based on whether we had relevant context
         if (searchResults.length > 0) {

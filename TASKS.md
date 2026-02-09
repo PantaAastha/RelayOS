@@ -47,9 +47,15 @@
   - Frontend buttons in conversation detail page
 
 ### Security & Guardrails 🔒
-- [ ] 🔴 **PII Scrubbing** - Filter sensitive data (emails, phones, SSNs) from responses
-- [ ] 🔴 **Prompt Injection Defense** - Gatekeeper check for hijack attempts
-- [ ] 🟡 **Output Validation** - Ensure responses stay within defined persona boundaries
+- [x] 🔴 **PII Scrubbing** - Filter sensitive data (emails, phones, SSNs) from responses ✅
+  - Using custom `pii-scrubber.ts` module (zero external dependencies)
+  - Scrubs both user input and LLM output
+- [x] 🔴 **Prompt Injection Defense** - Gatekeeper check for hijack attempts ✅
+  - Multi-layer defense: heuristic patterns + LLM gatekeeper
+  - Blocks common injection techniques (ignore instructions, DAN, etc.)
+- [x] 🟡 **Output Validation** - Ensure responses stay within defined persona boundaries ✅
+  - LLM-based validation against persona rules
+  - Falls back to safe response if validation fails
 
 ### Quality Assurance
 - [ ] 🔴 **Canonical Question Pack** - 20-30 test questions for regression

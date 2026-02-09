@@ -25,7 +25,10 @@ export type EventType =
     | 'handoff.requested'
     | 'handoff.completed'
     | 'n8n.handoff.triggered'
-    | 'n8n.lead.triggered';
+    | 'n8n.lead.triggered'
+    | 'guardrails.injection.blocked'
+    | 'guardrails.pii.detected'
+    | 'guardrails.output.invalid';
 
 export interface EventPayload {
     [key: string]: unknown;
@@ -214,6 +217,9 @@ export class EventsService {
             'handoff.completed',
             'n8n.handoff.triggered',
             'n8n.lead.triggered',
+            'guardrails.injection.blocked',
+            'guardrails.pii.detected',
+            'guardrails.output.invalid',
         ];
     }
 }

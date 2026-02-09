@@ -11,6 +11,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { N8nModule } from './modules/n8n/n8n.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
+import { GuardrailsModule } from './modules/guardrails/guardrails.module';
 import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
 import { TenantThrottlerGuard } from './guards/tenant-throttler.guard';
 import { throttlerConfig } from './config/throttler.config';
