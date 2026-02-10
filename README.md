@@ -1,18 +1,19 @@
 # RelayOS
 
-A multi-tenant AI support copilot that can be embedded on any website. RelayOS uses Retrieval-Augmented Generation (RAG) to answer customer questions using company-approved knowledge bases, with full citations and confidence scoring.
+A multi-context AI assistant platform for B2B companies. One customer deploys multiple specialized AI assistants — Support, Developer Docs, Onboarding, Sales — each with its own persona, knowledge base, and behavior mode. Same infrastructure, different specialized assistants for every context.
 
 ## Vision
 
-Most B2B SaaS companies struggle with support at scale. Documentation gets outdated, support teams get overwhelmed, and customers wait for answers that exist somewhere in the knowledge base. RelayOS solves this by providing an embeddable AI assistant that:
+B2B companies don't have one AI need — they have many. Support teams need a reactive Q&A bot. Developer docs need a reference assistant. Onboarding needs a guided, proactive copilot. Today, each of these requires a separate tool. RelayOS is a single platform that powers all of them:
 
-- Answers customer questions instantly using your existing documentation
-- Always cites sources so users can verify answers
-- Grades its own answers for confidence and flags uncertain responses
-- Collects user feedback for continuous improvement
-- Routes to human agents when it cannot help
+- **Multi-context**: Deploy specialized assistants across your entire organization from one platform
+- **Context-aware**: Each assistant understands where the user is, who they are, and what they need
+- **Grounded**: RAG-powered responses with citations, confidence scoring, and self-grading
+- **Secure**: PII scrubbing, prompt injection defense, and per-tenant isolation
+- **Observable**: Structured event logging, correlation IDs, and quality metrics
+- **Human-in-the-loop**: Routes to human agents when it cannot help
 
-The target market is mid-market B2B SaaS companies (20-200 employees, $5M-$50M ARR) who need to scale their support without proportionally scaling their team.
+The target market is mid-market B2B SaaS companies (20-200 employees, $5M-$50M ARR) who want to deploy AI assistants across their organization — not just for support.
 
 ---
 
@@ -35,10 +36,10 @@ RelayOS is currently in active development. Phase 1 (RAG Quality and Observabili
 - User feedback loop with thumbs up/down buttons stored for analytics
 - Automatic disclaimers for low-confidence answers
 
-**Multi-Tenancy**
+**Multi-Tenancy & Multi-Context**
 - Full tenant isolation with row-level security in PostgreSQL
-- Tenant-specific document ingestion and chunking
-- Per-tenant configuration and API key management
+- Each tenant = a specialized assistant with its own knowledge base, persona, and configuration
+- BYOK (Bring Your Own Key) support for LLM API keys
 
 **Observability**
 - Structured event logging for conversation lifecycle, RAG operations, and handoffs
@@ -55,9 +56,9 @@ RelayOS is currently in active development. Phase 1 (RAG Quality and Observabili
 
 See [TASKS.md](./TASKS.md) for the full enhancement roadmap. Upcoming phases include:
 
-- Phase 2: Support Intelligence (intent classification, escalation detection, context engineering)
-- Phase 3: Ticketing Integrations (Zendesk, Intercom, Freshdesk via n8n)
-- Phase 4: Analytics and ROI Dashboard (deflection rate, resolution time, top questions)
+- Phase 2: Context & Persona Layer (assistant types, context-aware retrieval, persona definition)
+- Phase 3: Demo & Intelligence (live multi-context demo, intent classification, quality dashboard)
+- Phase 4: Integrations & Analytics (Zendesk, Intercom, deflection metrics, ROI dashboard)
 - Phase 5: Agentic Capabilities (tool use, action framework, multi-agent architecture)
 
 ---
