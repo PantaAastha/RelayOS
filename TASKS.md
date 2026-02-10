@@ -58,7 +58,9 @@
   - Falls back to safe response if validation fails
 
 ### Quality Assurance
-- [ ] 🔴 **Canonical Question Pack** - 20-30 test questions for regression
+- [x] 🔴 **Canonical Question Pack** - 20-30 test questions for regression ✅
+  - Created `test/canonical/questions.json` with 20 sample questions
+  - Test runner: `npm run test:canonical`
 - [ ] 🟡 **Promptfoo Integration** - Automated RAG quality testing
 
 ### Future Observability

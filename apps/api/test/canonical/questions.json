@@ -1,0 +1,438 @@
+{
+    "meta": {
+        "pack_name": "canonical-question-pack_geopolitics-of-generative-intelligence_2024-2026",
+        "purpose": "regression_test",
+        "generated_at_local": "2026-02-10",
+        "timezone": "Asia/Kathmandu",
+        "source_document": {
+            "title": "The Geopolitics of Generative Intelligence: A Comprehensive Analysis of Global ChatGPT Adoption and Functional Utilization (2024–2026)",
+            "file": "ChatGPT Usage and Top Use Cases.pdf",
+            "pages": 18
+        },
+        "evaluation_notes": [
+            "Pack 1 tests single-chunk factual retrieval — must_include uses flexible key terms, not exact phrases.",
+            "Pack 2 tests multi-chunk synthesis — expects the system to combine info from different sections.",
+            "Pack 3 tests RAG boundaries — out-of-scope questions should be gracefully refused, not hallucinated."
+        ]
+    },
+    "packs": [
+        {
+            "pack_id": "factual_retrieval",
+            "description": "Direct factual questions answerable from a single chunk. Tests retrieval accuracy and grounded response generation.",
+            "questions": [
+                {
+                    "id": "FR-001",
+                    "type": "factual_recall",
+                    "prompt": "Which country has the largest share of ChatGPT traffic according to the report?",
+                    "expected": {
+                        "must_include": [
+                            "United States"
+                        ],
+                        "numeric_checks": [
+                            {
+                                "label": "US traffic share",
+                                "expected": 19.01,
+                                "unit": "%",
+                                "tolerance": 2.0
+                            }
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        2
+                    ]
+                },
+                {
+                    "id": "FR-002",
+                    "type": "factual_recall",
+                    "prompt": "What daily usage rate does the report cite for India?",
+                    "expected": {
+                        "must_include": [
+                            "India"
+                        ],
+                        "numeric_checks": [
+                            {
+                                "label": "India daily usage rate",
+                                "expected": 36,
+                                "unit": "%",
+                                "tolerance": 3.0
+                            }
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        2,
+                        7
+                    ]
+                },
+                {
+                    "id": "FR-003",
+                    "type": "factual_recall",
+                    "prompt": "What percentage of global ChatGPT sessions came from mobile devices in 2025?",
+                    "expected": {
+                        "numeric_checks": [
+                            {
+                                "label": "mobile sessions share",
+                                "expected": 61,
+                                "unit": "%",
+                                "tolerance": 3.0
+                            }
+                        ],
+                        "answer_format": "single number with context"
+                    },
+                    "evidence_pages": [
+                        15
+                    ]
+                },
+                {
+                    "id": "FR-004",
+                    "type": "factual_recall",
+                    "prompt": "What is Generative Engine Optimization (GEO) as described in the report?",
+                    "expected": {
+                        "must_include": [
+                            "content",
+                            "AI"
+                        ],
+                        "should_include": [
+                            "optimize",
+                            "visibility",
+                            "retrieval"
+                        ],
+                        "answer_format": "2-3 sentences"
+                    },
+                    "evidence_pages": [
+                        6
+                    ]
+                },
+                {
+                    "id": "FR-005",
+                    "type": "factual_recall",
+                    "prompt": "According to the report, what is the primary usage characteristic of ChatGPT in Brazil?",
+                    "expected": {
+                        "must_include": [
+                            "Brazil"
+                        ],
+                        "should_include": [
+                            "marketing",
+                            "cost",
+                            "creative"
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        3,
+                        9
+                    ]
+                },
+                {
+                    "id": "FR-006",
+                    "type": "factual_recall",
+                    "prompt": "How did the gender gap in ChatGPT usage change between early 2024 and mid-2025?",
+                    "expected": {
+                        "must_include": [
+                            "female"
+                        ],
+                        "should_include": [
+                            "increased",
+                            "37",
+                            "52"
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        15
+                    ]
+                },
+                {
+                    "id": "FR-007",
+                    "type": "factual_recall",
+                    "prompt": "What does the report say about ChatGPT usage in Canada?",
+                    "expected": {
+                        "must_include": [
+                            "Canada"
+                        ],
+                        "should_include": [
+                            "academic",
+                            "research",
+                            "tech"
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        3,
+                        4
+                    ]
+                },
+                {
+                    "id": "FR-008",
+                    "type": "factual_recall",
+                    "prompt": "What does the report describe as the primary ChatGPT use case for professionals in India?",
+                    "expected": {
+                        "must_include": [
+                            "India"
+                        ],
+                        "should_include": [
+                            "education",
+                            "skill",
+                            "upskill"
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        7,
+                        8
+                    ]
+                }
+            ]
+        },
+        {
+            "pack_id": "multi_chunk_synthesis",
+            "description": "Questions requiring the system to combine information from multiple document sections. Tests retrieval breadth and LLM synthesis quality.",
+            "questions": [
+                {
+                    "id": "MS-001",
+                    "type": "comparison",
+                    "prompt": "Compare how the US and India differ in their primary ChatGPT use cases according to the report.",
+                    "expected": {
+                        "must_include": [
+                            "United States",
+                            "India"
+                        ],
+                        "should_include": [
+                            "enterprise",
+                            "productivity",
+                            "education",
+                            "skill"
+                        ],
+                        "answer_format": "short paragraph or bullets"
+                    },
+                    "evidence_pages": [
+                        3,
+                        5,
+                        7
+                    ]
+                },
+                {
+                    "id": "MS-002",
+                    "type": "synthesis",
+                    "prompt": "Summarize the main differences between how developed countries and emerging markets use ChatGPT, based on the report.",
+                    "expected": {
+                        "must_include": [
+                            "mobile",
+                            "desktop"
+                        ],
+                        "should_include": [
+                            "enterprise",
+                            "education",
+                            "cost"
+                        ],
+                        "answer_format": "3-5 bullets or paragraph"
+                    },
+                    "evidence_pages": [
+                        4,
+                        7,
+                        9,
+                        15
+                    ]
+                },
+                {
+                    "id": "MS-003",
+                    "type": "classification",
+                    "prompt": "Explain the 'Ladder, Lever, and Assistant' economies model from the report with an example country for each.",
+                    "expected": {
+                        "must_include": [
+                            "Ladder",
+                            "Lever",
+                            "Assistant"
+                        ],
+                        "should_include": [
+                            "India",
+                            "United States",
+                            "education",
+                            "enterprise"
+                        ],
+                        "answer_format": "bullets or structured explanation"
+                    },
+                    "evidence_pages": [
+                        15
+                    ]
+                },
+                {
+                    "id": "MS-004",
+                    "type": "synthesis",
+                    "prompt": "What are the top 5 countries by ChatGPT adoption mentioned in the report and what characterizes each?",
+                    "expected": {
+                        "must_include": [
+                            "United States",
+                            "India",
+                            "Brazil"
+                        ],
+                        "should_include": [
+                            "Canada",
+                            "United Kingdom",
+                            "productivity",
+                            "education",
+                            "marketing"
+                        ],
+                        "answer_format": "bulleted list"
+                    },
+                    "evidence_pages": [
+                        3,
+                        4
+                    ]
+                },
+                {
+                    "id": "MS-005",
+                    "type": "comparison",
+                    "prompt": "How do mobile and desktop usage patterns differ between the US/Europe and India/Brazil according to the report?",
+                    "expected": {
+                        "must_include": [
+                            "mobile",
+                            "desktop"
+                        ],
+                        "should_include": [
+                            "shorter",
+                            "transactional",
+                            "complex",
+                            "drafting"
+                        ],
+                        "answer_format": "short paragraph"
+                    },
+                    "evidence_pages": [
+                        4,
+                        15
+                    ]
+                }
+            ]
+        },
+        {
+            "pack_id": "rag_boundary_testing",
+            "description": "Tests RAG system behavior at its boundaries: out-of-scope questions (should refuse gracefully), ambiguous queries, and questions with false premises. A well-functioning RAG should NOT hallucinate answers for these.",
+            "questions": [
+                {
+                    "id": "RB-001",
+                    "type": "out_of_scope",
+                    "prompt": "What is the current stock price of OpenAI?",
+                    "expected": {
+                        "must_include": [
+                            "don't have",
+                            "not available",
+                            "cannot",
+                            "no information",
+                            "unable",
+                            "outside"
+                        ],
+                        "answer_format": "polite refusal"
+                    },
+                    "evidence_pages": []
+                },
+                {
+                    "id": "RB-002",
+                    "type": "out_of_scope",
+                    "prompt": "Write me a Python script to scrape Twitter data.",
+                    "expected": {
+                        "must_include": [
+                            "don't have",
+                            "not available",
+                            "cannot",
+                            "no information",
+                            "unable",
+                            "outside",
+                            "can't help",
+                            "not able"
+                        ],
+                        "answer_format": "polite refusal"
+                    },
+                    "evidence_pages": []
+                },
+                {
+                    "id": "RB-003",
+                    "type": "out_of_scope",
+                    "prompt": "What will ChatGPT adoption look like in 2030?",
+                    "expected": {
+                        "must_include": [
+                            "don't have",
+                            "not available",
+                            "cannot",
+                            "no information",
+                            "speculate",
+                            "unable",
+                            "beyond"
+                        ],
+                        "answer_format": "polite refusal or qualified answer"
+                    },
+                    "evidence_pages": []
+                },
+                {
+                    "id": "RB-004",
+                    "type": "false_premise",
+                    "prompt": "The report says China leads in ChatGPT traffic share. What factors drive this?",
+                    "expected": {
+                        "must_include": [
+                            "United States",
+                            "not China",
+                            "incorrect",
+                            "actually",
+                            "does not say",
+                            "not accurate"
+                        ],
+                        "answer_format": "correction + factual response"
+                    },
+                    "evidence_pages": [
+                        2
+                    ]
+                },
+                {
+                    "id": "RB-005",
+                    "type": "ambiguous_query",
+                    "prompt": "Tell me about the usage.",
+                    "expected": {
+                        "success_criteria": [
+                            "Attempts to answer about ChatGPT usage from the document",
+                            "Does not refuse or say it cannot help",
+                            "Provides at least some factual content from the report"
+                        ],
+                        "answer_format": "general overview or clarifying question"
+                    },
+                    "evidence_pages": []
+                },
+                {
+                    "id": "RB-006",
+                    "type": "out_of_scope",
+                    "prompt": "How do I reset my password on this platform?",
+                    "expected": {
+                        "must_include": [
+                            "don't have",
+                            "not available",
+                            "cannot",
+                            "no information",
+                            "unable",
+                            "contact",
+                            "support"
+                        ],
+                        "answer_format": "polite refusal or redirect"
+                    },
+                    "evidence_pages": []
+                },
+                {
+                    "id": "RB-007",
+                    "type": "paraphrase_robustness",
+                    "prompt": "Which nation uses ChatGPT the most?",
+                    "expected": {
+                        "must_include": [
+                            "United States"
+                        ],
+                        "should_include": [
+                            "traffic",
+                            "19"
+                        ],
+                        "answer_format": "1-2 sentences"
+                    },
+                    "evidence_pages": [
+                        2
+                    ]
+                }
+            ]
+        }
+    ]
+}
