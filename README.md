@@ -72,9 +72,12 @@ relayos/
 │   │       ├── conversation/   # Chat, feedback, handoff
 │   │       ├── knowledge/      # RAG search, ingestion, re-ranking
 │   │       ├── llm/            # LLM abstraction (Gemini, OpenAI)
+│   │       ├── guardrails/     # Input/output safety (PII, injection)
 │   │       ├── events/         # Structured logging
 │   │       ├── tenants/        # Multi-tenant management
 │   │       └── n8n/            # Workflow triggers
+│   │   └── test/
+│   │       └── canonical/      # RAG regression test suite
 │   ├── widget/       # Embeddable React chat widget (Vite)
 │   └── admin/        # Next.js admin dashboard
 ├── packages/
@@ -130,6 +133,24 @@ npm run dev
 npm run dev --filter=api       # API on :3001
 npm run dev --filter=admin     # Admin on :3000
 cd apps/widget && npm run dev  # Widget dev server
+```
+
+### RAG Regression Testing
+
+The canonical question pack tests RAG quality across three dimensions:
+
+| Pack | What it tests |
+|------|---------------|
+| `factual_retrieval` | Single-chunk retrieval accuracy — can the system find and return the right fact? |
+| `multi_chunk_synthesis` | Cross-section synthesis — can the system combine info from multiple chunks? |
+| `rag_boundary_testing` | Out-of-scope refusal, false premises, ambiguous queries, paraphrase robustness |
+
+```bash
+# Run the test suite (requires API running on :3001)
+TENANT_ID=<your-tenant-id> npm run test:canonical
+
+# With verbose failure details
+VERBOSE=true TENANT_ID=<your-tenant-id> npm run test:canonical
 ```
 
 ### Database Setup
