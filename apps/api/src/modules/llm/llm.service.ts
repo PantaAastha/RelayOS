@@ -155,7 +155,8 @@ export class LLMService {
 
     /**
      * Helper: Build a system prompt with RAG context
-     * The context is placed prominently so the LLM uses it
+     * The context is placed prominently so the LLM uses it.
+     * Uses the dynamic system prompt from tenant persona configuration.
      */
     buildRAGPrompt(
         systemPrompt: string,
@@ -169,7 +170,7 @@ export class LLMService {
             return [
                 {
                     role: 'system',
-                    content: `You are a helpful, friendly customer support assistant.
+                    content: `${systemPrompt}
 
 === KNOWLEDGE BASE START ===
 ${contextBlock}
@@ -196,7 +197,7 @@ GUIDELINES:
         return [
             {
                 role: 'system',
-                content: `You are a helpful, friendly customer support assistant.
+                content: `${systemPrompt}
 
 IMPORTANT: You may see previous conversation messages for context. Those questions have ALREADY been answered - do NOT re-address or disclaim about them. Focus ONLY on answering the user's LATEST message.
 

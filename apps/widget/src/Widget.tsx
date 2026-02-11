@@ -12,6 +12,18 @@ interface WidgetConfig {
     testMode?: boolean;
 }
 
+interface StarterQuestion {
+    label: string;
+    message: string;
+}
+
+interface TenantWidgetConfig {
+    welcomeMessage: string;
+    starterQuestions: StarterQuestion[];
+    persona: { name?: string };
+    config: { primaryColor?: string; widgetTitle?: string };
+}
+
 interface WidgetRef {
     open: () => void;
     close: () => void;
@@ -32,6 +44,7 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     }>>([]);
 
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [tenantConfig, setTenantConfig] = useState<TenantWidgetConfig | null>(null);
 
     // Persistence Key
     const storageKey = `relayos_widget_${config.tenantId}`;
@@ -60,6 +73,22 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
         }
     }, [conversationId, config.tenantId]);
 
+    // Fetch tenant widget config on mount
+    useEffect(() => {
+        const fetchWidgetConfig = async () => {
+            try {
+                const response = await fetch(`${config.apiUrl}/tenants/${config.tenantId}/widget-config`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setTenantConfig(data);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch widget config, using defaults', e);
+            }
+        };
+        fetchWidgetConfig();
+    }, [config.apiUrl, config.tenantId]);
+
     const fetchConversation = async (id: string) => {
         setIsLoadingHistory(true);
         try {
@@ -87,6 +116,12 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     const title = config.title || 'Chat with us';
     const testMode = config.testMode || false;
 
+    const handleReset = () => {
+        setConversationId(null);
+        setMessages([]);
+        localStorage.removeItem(storageKey);
+    };
+
     return (
         <div
             className="relayos-widget"
@@ -100,11 +135,14 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                     title={title}
                     testMode={testMode}
                     conversationId={conversationId}
-                    messages={messages as any} // Cast to match ChatWindow props if needed
+                    messages={messages as any}
                     isLoadingHistory={isLoadingHistory}
+                    welcomeMessage={tenantConfig?.welcomeMessage}
+                    starterQuestions={tenantConfig?.starterQuestions}
                     onConversationStart={setConversationId}
                     onMessagesUpdate={setMessages}
                     onClose={() => setIsOpen(false)}
+                    onReset={handleReset}
                 />
             ) : (
                 <WidgetButton onClick={() => setIsOpen(true)} testMode={testMode} />

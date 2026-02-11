@@ -14,6 +14,22 @@ export const tenants = pgTable('tenants', {
         welcomeMessage?: string;
         escalationEnabled?: boolean;
     }>(),
+    // Phase 2: Persona & Configuration
+    persona: jsonb('persona').default({}).$type<{
+        name?: string;
+        tone?: string;
+        voice?: string;
+        boundaries?: string;
+        customInstructions?: string;
+    }>(),
+    // Assistant type: reactive (support Q&A), guided (onboarding flows), reference (docs lookup)
+    // TODO: 'guided' is system-prompt-only for now. Full step-tracking/progress planned for Phase 3.
+    assistantType: text('assistant_type').default('reactive'),
+    starterQuestions: jsonb('starter_questions').default([]).$type<Array<{
+        label: string;
+        message: string;
+    }>>(),
+    welcomeMessage: text('welcome_message').default('Hi there! How can I help you today?'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });

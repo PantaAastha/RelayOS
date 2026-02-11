@@ -65,13 +65,13 @@ RelayOS is a **multi-context AI assistant platform** for B2B companies. One cust
 > **Goal**: Make each assistant context-aware and distinctly specialized. This is the foundation for multi-context.
 
 ### Tenant Persona & Configuration
-- [ ] 🔴 **Persona Definition** - Per-tenant persona with voice, tone, boundaries, and welcome message
-- [ ] 🔴 **Assistant Type** - Define mode per tenant: `reactive` (support Q&A), `guided` (onboarding flows), `reference` (docs lookup)
+- [x] 🔴 **Persona Definition** - Per-tenant persona with voice, tone, boundaries, and welcome message
+- [x] 🔴 **Assistant Type** - Define mode per tenant: `reactive` (support Q&A), `guided` (onboarding flows), `reference` (docs lookup)
   - **Reactive (Support):** Waits for questions, provides cited answers
   - **Guided (Onboarding):** Proactive, step-by-step, tracks progress
   - **Reference (Docs):** Technical, code-focused, example-heavy
-- [ ] 🟡 **Persona Consistency** - Ensure predictable behavior across sessions
-- [ ] 🟡 **Welcome Message & Starters** - Context-specific greeting and suggested questions
+- [x] 🟡 **Persona Consistency** - Ensure predictable behavior across sessions
+- [x] 🟡 **Welcome Message & Starters** - Context-specific greeting and suggested questions
 
 ### Context Engineering
 - [ ] 🔴 **Context Schema** - Standard payload structure for widget → API (page, user, session)
@@ -178,4 +178,4 @@ RelayOS is a **multi-context AI assistant platform** for B2B companies. One cust
 ---
 
 *Vision: Multi-Context AI Assistant Platform for B2B*
-*Last updated: February 10, 2026*
+*Last updated: February 11, 2026*

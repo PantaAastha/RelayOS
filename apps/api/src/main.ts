@@ -8,7 +8,7 @@ async function bootstrap() {
   // In production, restrict to specific origins
   app.enableCors({
     origin: true, // Allow all origins in development
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-Tenant-ID', 'Authorization'],
     credentials: true,
   });

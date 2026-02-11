@@ -42,8 +42,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, apiUrl, t
         if (message.role !== 'assistant') return null;
 
         const confidence = message.confidence;
-        if (confidence === undefined || confidence === null) {
-            return <span className="confidence-badge confidence-na">N/A</span>;
+        // Debug
+
+        if (typeof confidence !== 'number') {
+            return null; // Don't show N/A anymore, just hide if invalid
         }
 
         const percent = Math.round(confidence * 100);
@@ -61,8 +63,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, apiUrl, t
         <div className={`message-bubble ${message.role}`}>
             <div className="message-content">{message.content}</div>
 
-            {/* Confidence and Feedback for assistant messages */}
-            {message.role === 'assistant' && (
+            {/* Confidence and Feedback - only for substantive responses with grading */}
+            {message.role === 'assistant' && typeof message.confidence === 'number' && (
                 <div className="message-actions">
                     {getConfidenceBadge()}
                     <button

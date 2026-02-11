@@ -9,6 +9,7 @@ import { KnowledgeService } from '../knowledge/knowledge.service';
 import { EventsService } from '../events/events.service';
 import { N8nService } from '../n8n/n8n.service';
 import { GuardrailsService } from '../guardrails/guardrails.service';
+import { TenantsService } from '../tenants/tenants.service';
 
 export interface Message {
     id: string;
@@ -35,6 +36,7 @@ export class ConversationService {
         private eventsService: EventsService,
         private n8nService: N8nService,
         private guardrailsService: GuardrailsService,
+        private tenantsService: TenantsService,
     ) {
         const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
         const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -92,8 +94,8 @@ export class ConversationService {
         response: {
             content: string;
             citations: Array<{ docId: string; chunkId: string; text: string }>;
-            confidence: number;
-            grade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED';
+            confidence: number | null;
+            grade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | null;
         };
     }> {
         const requestStart = Date.now();
@@ -216,7 +218,7 @@ export class ConversationService {
 
         // 5. Build RAG prompt
         const context = searchResults.map((r) => r.content);
-        const systemPrompt = this.buildSystemPrompt(tenantId);
+        const systemPrompt = await this.buildSystemPrompt(tenantId);
 
         // 6. Log agent invocation
         await this.eventsService.log(
@@ -273,25 +275,36 @@ export class ConversationService {
             }))
             : [];
 
-        // 8a. Grade the answer for quality
-        const grading = await this.gradeAnswer(context, response.content);
+        // 8a. Grade the answer for quality (skip for greetings / no-context responses)
+        const isConversational = this.isGreeting(userMessage) || searchResults.length === 0;
 
-        // Log grading result
-        await this.eventsService.log(
-            tenantId,
-            'rag.graded',
-            {
-                grade: grading.grade,
-                confidence: grading.confidence,
-                reasoning: grading.reasoning,
-            },
-            conversationId,
-            correlationId,
-        );
+        let gradingGrade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | null = null;
+        let gradingConfidence: number | null = null;
+        let gradingReasoning = 'Skipped — conversational message';
 
-        // If UNSUPPORTED, add disclaimer to response
+        if (!isConversational) {
+            const gradingResult = await this.gradeAnswer(context, response.content);
+            gradingGrade = gradingResult.grade;
+            gradingConfidence = gradingResult.confidence;
+            gradingReasoning = gradingResult.reasoning;
+
+            // Log grading result
+            await this.eventsService.log(
+                tenantId,
+                'rag.graded',
+                {
+                    grade: gradingGrade,
+                    confidence: gradingConfidence,
+                    reasoning: gradingReasoning,
+                },
+                conversationId,
+                correlationId,
+            );
+        }
+
+        // If UNSUPPORTED, add disclaimer to response (never for conversational messages)
         let finalContent = response.content;
-        if (grading.grade === 'UNSUPPORTED' && grading.confidence > 0.7) {
+        if (!isConversational && gradingGrade === 'UNSUPPORTED' && (gradingConfidence ?? 0) > 0.7) {
             finalContent = `⚠️ *This response may not be fully supported by our knowledge base.*\n\n${response.content}`;
         }
 
@@ -330,8 +343,8 @@ export class ConversationService {
                 citations,
                 tokens_used: response.tokensUsed.total,
                 model: response.model,
-                confidence: grading.confidence,
-                grade: grading.grade,
+                confidence: gradingConfidence,
+                grade: gradingGrade,
             })
             .select('id')
             .single();
@@ -365,8 +378,8 @@ export class ConversationService {
             response: {
                 content: finalContent,
                 citations,
-                confidence: grading.confidence,
-                grade: grading.grade,
+                confidence: gradingConfidence,
+                grade: gradingGrade,
             },
         };
     }
@@ -669,11 +682,87 @@ REASON: [one sentence explanation]`;
         return { success: true };
     }
 
-    private buildSystemPrompt(tenantId: string): string {
-        // TODO: Load tenant-specific configuration
-        return `You are a helpful customer support assistant. 
+    /**
+     * Build a dynamic system prompt from tenant persona configuration.
+     * Loads persona, tone, voice, boundaries, and assistant type from DB.
+     */
+    private async buildSystemPrompt(tenantId: string): Promise<string> {
+        try {
+            const tenant = await this.tenantsService.getTenantById(tenantId);
+            const persona = (tenant.persona || {}) as Record<string, any>;
+            const assistantType = tenant.assistant_type || 'reactive';
+
+            const parts: string[] = [];
+
+            // 1. Identity
+            if (persona.name) {
+                parts.push(`You are ${persona.name}.`);
+                parts.push('IMPORTANT: You have ALREADY introduced yourself. Do NOT say "Hi I am..." or similar. Just answer the user directly unless they ask who you are.');
+            } else {
+                parts.push('You are a helpful customer support assistant.');
+            }
+
+            // 2. Tone & voice
+            if (persona.tone) parts.push(`Your tone is: ${persona.tone}.`);
+            if (persona.voice) parts.push(persona.voice);
+
+            // 3. Assistant type behavior
+            // TODO [Phase 3]: 'guided' type should have full step-tracking/progress features.
+            //   Currently only differs at the system prompt level.
+            switch (assistantType) {
+                case 'reactive':
+                    parts.push('You wait for the user to ask questions and provide accurate, cited answers.');
+                    break;
+                case 'guided':
+                    parts.push('You proactively guide users step-by-step. Ask clarifying questions. Track progress through tasks.');
+                    break;
+                case 'reference':
+                    parts.push('You provide technical, detailed answers with code examples. Be precise and thorough.');
+                    break;
+            }
+
+            // 4. Boundaries
+            if (persona.boundaries) {
+                parts.push(`\nBOUNDARIES:\n${persona.boundaries}`);
+            }
+
+            // 5. Custom instructions
+            if (persona.customInstructions) {
+                parts.push(`\n${persona.customInstructions}`);
+            }
+
+            // 6. Core guardrails (always present)
+            parts.push('If you\'re unsure about something, admit it instead of making things up.');
+
+            return parts.join('\n');
+        } catch (error) {
+            // Fallback if tenant lookup fails
+            console.warn(`[PROMPT] Failed to load tenant persona for ${tenantId}, using default`);
+            return `You are a helpful customer support assistant.
 Your job is to answer customer questions accurately and helpfully.
 Be professional, friendly, and concise.
 If you're unsure about something, admit it instead of making things up.`;
+        }
+    }
+
+    /**
+     * Detect if a message is a greeting, acknowledgement, or other conversational
+     * message that doesn't need RAG grading / guardrail scrutiny.
+     * Mirrors the skip patterns from QueryProcessorService.
+     */
+    private isGreeting(message: string): boolean {
+        const trimmed = message.trim();
+        const wordCount = trimmed.split(/\s+/).length;
+        if (wordCount > 4) return false;
+
+        const patterns = [
+            /^(hi|hello|hey|hiya|howdy|yo|sup)[\s!.,?]*$/i,
+            /^(thanks|thank you|thx|ty)[\s!.,?]*$/i,
+            /^(ok|okay|yes|no|sure|got it|understood)[\s!.,?]*$/i,
+            /^(bye|goodbye|see you|later)[\s!.,?]*$/i,
+            /^(good morning|good afternoon|good evening|good night)[\s!.,?]*$/i,
+            /^(how are you|what's up|whats up)[\s!.,?]*$/i,
+        ];
+        return patterns.some(p => p.test(trimmed));
     }
 }

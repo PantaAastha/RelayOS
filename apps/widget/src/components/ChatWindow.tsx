@@ -11,6 +11,11 @@ interface Message {
     grade?: string;
 }
 
+interface StarterQuestion {
+    label: string;
+    message: string;
+}
+
 interface ChatWindowProps {
     apiUrl: string;
     tenantId: string;
@@ -19,9 +24,12 @@ interface ChatWindowProps {
     conversationId: string | null;
     messages: Message[];
     isLoadingHistory?: boolean;
+    welcomeMessage?: string;
+    starterQuestions?: StarterQuestion[];
     onConversationStart: (id: string) => void;
     onMessagesUpdate: (messages: Message[]) => void;
     onClose: () => void;
+    onReset?: () => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -32,9 +40,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     conversationId,
     messages,
     isLoadingHistory = false,
+    welcomeMessage,
+    starterQuestions,
     onConversationStart,
     onMessagesUpdate,
     onClose,
+    onReset,
 }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -139,6 +150,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <div className="chat-header">
                 <h2>{title}</h2>
                 <div className="header-actions">
+                    {onReset && (
+                        <button
+                            className="reset-button"
+                            onClick={onReset}
+                            title="Start new conversation"
+                            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', marginRight: '8px' }}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                                <path d="M2.5 2v6h6M21.5 22v-6h-6" />
+                                <path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2" />
+                            </svg>
+                        </button>
+                    )}
                     <button
                         className="escalate-button"
                         onClick={handleEscalate}
@@ -170,7 +194,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                 {!isLoadingHistory && messages.length === 0 && (
                     <div className="welcome-message">
-                        <p>👋 Hi there! How can I help you today?</p>
+                        <p>👋 {welcomeMessage || 'Hi there! How can I help you today?'}</p>
+                        {starterQuestions && starterQuestions.length > 0 && (
+                            <div className="starter-chips">
+                                {starterQuestions.map((q, i) => (
+                                    <button
+                                        key={i}
+                                        className="starter-chip"
+                                        onClick={() => sendMessage(q.message)}
+                                    >
+                                        {q.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
                 {messages.map((msg) => (
