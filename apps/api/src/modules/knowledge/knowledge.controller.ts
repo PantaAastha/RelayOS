@@ -36,11 +36,12 @@ export class KnowledgeController {
      */
     @Post('documents')
     async ingestDocument(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Body() dto: IngestDocumentDto,
     ) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.title || !dto.content) {
@@ -67,9 +68,11 @@ export class KnowledgeController {
      * GET /knowledge/documents - List all documents for a tenant
      */
     @Get('documents')
-    async listDocuments(@Headers('x-tenant-id') tenantId: string) {
+    @Get('documents')
+    async listDocuments(@Headers() headers: Record<string, string>) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         const documents = await this.knowledgeService.getDocuments(tenantId);
@@ -104,9 +107,11 @@ export class KnowledgeController {
      * Useful for batch updates after changing chunking parameters
      */
     @Post('reingest-all')
-    async reingestAllDocuments(@Headers('x-tenant-id') tenantId: string) {
+    @Post('reingest-all')
+    async reingestAllDocuments(@Headers() headers: Record<string, string>) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         const result = await this.knowledgeService.reingestAllDocuments(tenantId);
@@ -122,11 +127,12 @@ export class KnowledgeController {
      */
     @Post('search')
     async search(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Body() dto: { query: string; limit?: number },
     ) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.query) {
@@ -149,12 +155,13 @@ export class KnowledgeController {
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @UploadedFile() file: Express.Multer.File,
         @Body() body: { title?: string; docType?: string },
     ) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!file) {
@@ -199,12 +206,13 @@ export class KnowledgeController {
     @Post('upload-batch')
     @UseInterceptors(FilesInterceptor('files', 10))
     async uploadFiles(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @UploadedFiles() files: Express.Multer.File[],
         @Body() body: { docType?: string },
     ) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!files || files.length === 0) {

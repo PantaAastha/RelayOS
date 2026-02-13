@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-export interface TenantPersona {
+export interface AssistantPersona {
     name?: string;
     tone?: string;
     voice?: string;
@@ -17,12 +17,13 @@ export interface StarterQuestion {
 
 export type AssistantType = 'reactive' | 'guided' | 'reference';
 
-export interface Tenant {
+export interface Assistant {
     id: string;
+    organization_id: string;
     name: string;
     slug: string;
     config: Record<string, any>;
-    persona: TenantPersona;
+    persona: AssistantPersona;
     assistant_type: AssistantType;
     starter_questions: StarterQuestion[];
     welcome_message: string;
@@ -31,7 +32,7 @@ export interface Tenant {
 }
 
 export interface WidgetBootstrap {
-    tenantName: string;
+    assistantName: string;
     welcomeMessage: string;
     starterQuestions: StarterQuestion[];
     assistantType: AssistantType;
@@ -43,7 +44,7 @@ export interface WidgetBootstrap {
 }
 
 @Injectable()
-export class TenantsService {
+export class AssistantsService {
     private supabase: SupabaseClient;
 
     constructor(private configService: ConfigService) {
@@ -57,22 +58,23 @@ export class TenantsService {
         this.supabase = createClient(supabaseUrl, serviceRoleKey);
     }
 
-    async validateTenant(tenantId: string): Promise<boolean> {
+    async validateAssistant(assistantId: string): Promise<boolean> {
         const { data } = await this.supabase
-            .from('tenants')
+            .from('assistants')
             .select('id')
-            .eq('id', tenantId)
+            .eq('id', assistantId)
             .single();
 
         return !!data;
     }
 
-    async createTenant(data: { name: string; slug: string; config?: any }): Promise<Tenant> {
-        const { data: tenant, error } = await this.supabase
-            .from('tenants')
+    async createAssistant(data: { name: string; slug: string; organizationId: string; config?: any }): Promise<Assistant> {
+        const { data: assistant, error } = await this.supabase
+            .from('assistants')
             .insert({
                 name: data.name,
                 slug: data.slug,
+                organization_id: data.organizationId,
                 config: data.config || {},
             })
             .select()
@@ -80,23 +82,23 @@ export class TenantsService {
 
         if (error) {
             if (error.code === '23505') { // Unique violation
-                throw new BadRequestException('Tenant with this slug already exists');
+                throw new BadRequestException('Assistant with this slug already exists');
             }
-            throw new Error(`Failed to create tenant: ${error.message}`);
+            throw new Error(`Failed to create assistant: ${error.message}`);
         }
 
-        return tenant;
+        return assistant;
     }
 
-    async updateTenant(id: string, data: {
+    async updateAssistant(id: string, data: {
         name?: string;
         slug?: string;
         config?: Record<string, any>;
-        persona?: TenantPersona;
+        persona?: AssistantPersona;
         assistant_type?: AssistantType;
         welcome_message?: string;
         starter_questions?: StarterQuestion[];
-    }): Promise<Tenant> {
+    }): Promise<Assistant> {
         // Validate assistant_type if provided
         if (data.assistant_type && !['reactive', 'guided', 'reference'].includes(data.assistant_type)) {
             throw new BadRequestException('assistant_type must be one of: reactive, guided, reference');
@@ -118,8 +120,8 @@ export class TenantsService {
             throw new BadRequestException('No fields to update');
         }
 
-        const { data: tenant, error } = await this.supabase
-            .from('tenants')
+        const { data: assistant, error } = await this.supabase
+            .from('assistants')
             .update(updatePayload)
             .eq('id', id)
             .select()
@@ -127,56 +129,56 @@ export class TenantsService {
 
         if (error) {
             if (error.code === '23505') {
-                throw new BadRequestException('Tenant with this slug already exists');
+                throw new BadRequestException('Assistant with this slug already exists');
             }
-            throw new Error(`Failed to update tenant: ${error.message}`);
+            throw new Error(`Failed to update assistant: ${error.message}`);
         }
 
-        if (!tenant) {
-            throw new NotFoundException('Tenant not found');
+        if (!assistant) {
+            throw new NotFoundException('Assistant not found');
         }
 
-        return tenant;
+        return assistant;
     }
 
-    async getTenantById(id: string): Promise<Tenant> {
+    async getAssistantById(id: string): Promise<Assistant> {
         const { data, error } = await this.supabase
-            .from('tenants')
+            .from('assistants')
             .select('*')
             .eq('id', id)
             .single();
 
         if (error || !data) {
-            throw new NotFoundException('Tenant not found');
+            throw new NotFoundException('Assistant not found');
         }
 
         return data;
     }
 
-    async getTenantBySlug(slug: string): Promise<Tenant> {
+    async getAssistantBySlug(slug: string): Promise<Assistant> {
         const { data, error } = await this.supabase
-            .from('tenants')
+            .from('assistants')
             .select('*')
             .eq('slug', slug)
             .single();
 
         if (error || !data) {
-            throw new NotFoundException('Tenant not found');
+            throw new NotFoundException('Assistant not found');
         }
 
         return data;
     }
 
-    async getWidgetBootstrap(tenantId: string): Promise<WidgetBootstrap> {
-        const tenant = await this.getTenantById(tenantId);
-        const config = (tenant.config || {}) as Record<string, any>;
-        const persona = (tenant.persona || {}) as TenantPersona;
+    async getWidgetBootstrap(assistantId: string): Promise<WidgetBootstrap> {
+        const assistant = await this.getAssistantById(assistantId);
+        const config = (assistant.config || {}) as Record<string, any>;
+        const persona = (assistant.persona || {}) as AssistantPersona;
 
         return {
-            tenantName: tenant.name,
-            welcomeMessage: tenant.welcome_message || 'Hi there! How can I help you today?',
-            starterQuestions: tenant.starter_questions || [],
-            assistantType: tenant.assistant_type || 'reactive',
+            assistantName: assistant.name,
+            welcomeMessage: assistant.welcome_message || 'Hi there! How can I help you today?',
+            starterQuestions: assistant.starter_questions || [],
+            assistantType: assistant.assistant_type || 'reactive',
             persona: { name: persona.name },
             config: {
                 primaryColor: config.primaryColor,
@@ -185,28 +187,36 @@ export class TenantsService {
         };
     }
 
-    async listTenants(): Promise<Tenant[]> {
-        const { data, error } = await this.supabase
-            .from('tenants')
+    async listAssistants(organizationId?: string): Promise<Assistant[]> {
+        let query = this.supabase
+            .from('assistants')
             .select('*')
             .order('created_at', { ascending: false });
 
+        if (organizationId) {
+            query = query.eq('organization_id', organizationId);
+        }
+
+        const { data, error } = await query;
+
         if (error) {
-            throw new Error(`Failed to list tenants: ${error.message}`);
+            throw new Error(`Failed to list assistants: ${error.message}`);
         }
 
         return data || [];
     }
-    async deleteTenant(id: string): Promise<void> {
+
+    async deleteAssistant(id: string): Promise<void> {
         // Proper FK-aware deletion order:
         // 1. Get all conversation IDs first (needed for events deletion)
         // 2. Delete events (has FK to conversations)
         // 3. Delete messages (has FK to conversations)
-        // 4. Delete conversations (has FK to tenant)
-        // 5. Delete documents (has FK to tenant, chunks cascade)
-        // 6. Delete tenant
+        // 4. Delete conversations (has FK to tenant/assistant)
+        // 5. Delete documents (has FK to tenant/assistant, chunks cascade)
+        // 6. Delete assistant
 
-        // 1. Get all conversation IDs for this tenant
+        // 1. Get all conversation IDs for this assistant
+        // Note: The column is still named 'tenant_id' in the conversations table for backward compatibility
         const { data: conversations, error: convFetchError } = await this.supabase
             .from('conversations')
             .select('id')
@@ -232,13 +242,14 @@ export class TenantsService {
         }
 
         // Also delete any events by tenant_id (e.g., events without conversation_id)
-        const { error: eventsTenantError } = await this.supabase
+        // Note: The column is still named 'tenant_id' in the events table
+        const { error: eventsAssistantError } = await this.supabase
             .from('events')
             .delete()
             .eq('tenant_id', id);
 
-        if (eventsTenantError) {
-            throw new Error(`Failed to clean up tenant events: ${eventsTenantError.message}`);
+        if (eventsAssistantError) {
+            throw new Error(`Failed to clean up assistant events: ${eventsAssistantError.message}`);
         }
 
         // 3. Delete messages (FK to conversations)
@@ -253,7 +264,7 @@ export class TenantsService {
             }
         }
 
-        // 4. Delete conversations (FK to tenant)
+        // 4. Delete conversations (FK to assistant)
         if (conversationIds.length > 0) {
             const { error: convError } = await this.supabase
                 .from('conversations')
@@ -265,7 +276,8 @@ export class TenantsService {
             }
         }
 
-        // 5. Delete documents (FK to tenant, chunks cascade via ON DELETE CASCADE)
+        // 5. Delete documents (FK to assistant, chunks cascade via ON DELETE CASCADE)
+        // Note: The column is still named 'tenant_id' in the documents table
         const { error: docsError } = await this.supabase
             .from('documents')
             .delete()
@@ -275,14 +287,14 @@ export class TenantsService {
             throw new Error(`Failed to clean up documents: ${docsError.message}`);
         }
 
-        // 6. Finally delete the tenant
+        // 6. Finally delete the assistant
         const { error } = await this.supabase
-            .from('tenants')
+            .from('assistants')
             .delete()
             .eq('id', id);
 
         if (error) {
-            throw new Error(`Failed to delete tenant: ${error.message}`);
+            throw new Error(`Failed to delete assistant: ${error.message}`);
         }
     }
 }

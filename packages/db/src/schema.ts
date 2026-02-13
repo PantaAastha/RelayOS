@@ -3,9 +3,22 @@
 
 import { pgTable, uuid, text, timestamp, jsonb, integer, serial, vector, index } from 'drizzle-orm/pg-core';
 
-// Multi-tenancy
-export const tenants = pgTable('tenants', {
+// Multi-tenancy: Organizations (Companies/Accounts)
+export const organizations = pgTable('organizations', {
     id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    slug: text('slug').unique().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+// Assistants (Formerly Tenants): Specific Bot Instances (Support, Docs, etc.)
+// Renamed from 'tenants' to 'assistants'
+export const assistants = pgTable('assistants', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // Link to Organization (Company)
+    organizationId: uuid('organization_id').references(() => organizations.id),
+
     name: text('name').notNull(),
     slug: text('slug').unique().notNull(),
     config: jsonb('config').default({}).$type<{
@@ -37,7 +50,8 @@ export const tenants = pgTable('tenants', {
 // Conversations
 export const conversations = pgTable('conversations', {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').references(() => tenants.id),
+    // tenant_id now refers to assistant_id
+    tenantId: uuid('tenant_id').references(() => assistants.id),
     externalId: text('external_id'),
     channel: text('channel').notNull().default('web'), // web, whatsapp, api
     status: text('status').notNull().default('active'), // active, handed_off, closed
@@ -72,7 +86,8 @@ export const messages = pgTable('messages', {
 // Knowledge base documents
 export const documents = pgTable('documents', {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').references(() => tenants.id),
+    // tenant_id now refers to assistant_id
+    tenantId: uuid('tenant_id').references(() => assistants.id),
     title: text('title').notNull(),
     content: text('content').notNull(),
     sourceUrl: text('source_url'),
@@ -103,7 +118,8 @@ export const documentChunks = pgTable('document_chunks', {
 // Append-only event log (THE CORE OF "OS")
 export const events = pgTable('events', {
     id: serial('id').primaryKey(),
-    tenantId: uuid('tenant_id').references(() => tenants.id),
+    // tenant_id now refers to assistant_id
+    tenantId: uuid('tenant_id').references(() => assistants.id),
     conversationId: uuid('conversation_id').references(() => conversations.id),
     eventType: text('event_type').notNull(),
     payload: jsonb('payload').notNull(),

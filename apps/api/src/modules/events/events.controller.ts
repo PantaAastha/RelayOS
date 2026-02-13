@@ -20,14 +20,15 @@ export class EventsController {
      */
     @Get()
     async listEvents(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Query('type') eventType?: string,
         @Query('since') since?: string,
         @Query('search') search?: string,
         @Query('limit') limit?: string,
     ) {
+        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
         if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         const options: {
