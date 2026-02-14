@@ -20,7 +20,7 @@ export interface Message {
 
 export interface Conversation {
     id: string;
-    tenantId: string; // Keeping as tenantId to match DB column for now
+    tenantId: string; // Deprecated, mapped to assistant_id
     status: 'active' | 'handed_off' | 'closed';
     messages: Message[];
 }
@@ -60,7 +60,6 @@ export class ConversationService {
             .from('conversations')
             .insert({
                 assistant_id: tenantId, // New column
-                tenant_id: tenantId,    // Legacy column
                 channel,
                 metadata: metadata ?? {},
             })
@@ -648,11 +647,11 @@ REASON: [one sentence explanation]`;
             this.supabase
                 .from('documents')
                 .select('id', { count: 'exact', head: true })
-                .eq('tenant_id', tenantId),
+                .eq('assistant_id', tenantId),
             this.supabase
                 .from('conversations')
                 .select('id', { count: 'exact', head: true })
-                .eq('tenant_id', tenantId),
+                .eq('assistant_id', tenantId),
             this.supabase
                 .from('messages')
                 .select('id, conversation_id, conversations!inner(assistant_id)', { count: 'exact', head: true })
@@ -681,7 +680,6 @@ REASON: [one sentence explanation]`;
             .insert({
                 message_id: messageId,
                 assistant_id: tenantId,
-                tenant_id: tenantId,
                 feedback_type: type,
                 comment,
             });

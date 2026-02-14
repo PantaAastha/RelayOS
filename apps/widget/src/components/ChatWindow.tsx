@@ -215,7 +215,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     </div>
                 )}
                 {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} apiUrl={apiUrl} tenantId={assistantId} />
+                    <MessageBubble key={msg.id} message={msg} apiUrl={apiUrl} assistantId={assistantId} />
                 ))}
                 {isLoading && (
                     <div className="typing-indicator">

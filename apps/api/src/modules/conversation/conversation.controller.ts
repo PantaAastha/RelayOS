@@ -43,9 +43,9 @@ export class ConversationController {
         @Body() dto: SendMessageDto,
         @Req() req: Request,
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.content) {
@@ -54,7 +54,7 @@ export class ConversationController {
 
         try {
             const result = await this.conversationService.sendMessage(
-                tenantId,
+                assistantId,
                 dto.conversationId ?? null,
                 dto.content,
                 req.correlationId,
@@ -77,9 +77,9 @@ export class ConversationController {
         @Headers() headers: Record<string, string>,
         @Body() dto: EscalateDto,
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.conversationId) {
@@ -87,7 +87,7 @@ export class ConversationController {
         }
 
         const result = await this.conversationService.requestHandoff(
-            tenantId,
+            assistantId,
             dto.conversationId,
             dto.reason,
         );
@@ -102,12 +102,12 @@ export class ConversationController {
     @Get('stats')
     @Get('stats')
     async getStats(@Headers() headers: Record<string, string>) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
-        const stats = await this.conversationService.getStats(tenantId);
+        const stats = await this.conversationService.getStats(assistantId);
         return stats;
     }
 
@@ -117,12 +117,12 @@ export class ConversationController {
     @Get()
     @Get()
     async listConversations(@Headers() headers: Record<string, string>) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
-        const conversations = await this.conversationService.listConversations(tenantId);
+        const conversations = await this.conversationService.listConversations(assistantId);
         return { conversations };
     }
 
@@ -149,9 +149,9 @@ export class ConversationController {
         @Headers() headers: Record<string, string>,
         @Body() dto: FeedbackDto,
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.messageId || !dto.type) {
@@ -159,7 +159,7 @@ export class ConversationController {
         }
 
         const result = await this.conversationService.submitFeedback(
-            tenantId,
+            assistantId,
             dto.messageId,
             dto.type,
             dto.comment,

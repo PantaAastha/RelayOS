@@ -39,9 +39,9 @@ export class KnowledgeController {
         @Headers() headers: Record<string, string>,
         @Body() dto: IngestDocumentDto,
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.title || !dto.content) {
@@ -49,7 +49,7 @@ export class KnowledgeController {
         }
 
         const document = await this.knowledgeService.ingestDocument(
-            tenantId,
+            assistantId,
             dto.title,
             dto.content,
             {
@@ -70,12 +70,12 @@ export class KnowledgeController {
     @Get('documents')
     @Get('documents')
     async listDocuments(@Headers() headers: Record<string, string>) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
-        const documents = await this.knowledgeService.getDocuments(tenantId);
+        const documents = await this.knowledgeService.getDocuments(assistantId);
         return { documents };
     }
 
@@ -109,12 +109,12 @@ export class KnowledgeController {
     @Post('reingest-all')
     @Post('reingest-all')
     async reingestAllDocuments(@Headers() headers: Record<string, string>) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
-        const result = await this.knowledgeService.reingestAllDocuments(tenantId);
+        const result = await this.knowledgeService.reingestAllDocuments(assistantId);
         return {
             success: result.failed === 0,
             ...result,
@@ -130,9 +130,9 @@ export class KnowledgeController {
         @Headers() headers: Record<string, string>,
         @Body() dto: { query: string; limit?: number },
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.query) {
@@ -140,7 +140,7 @@ export class KnowledgeController {
         }
 
         const results = await this.knowledgeService.search(
-            tenantId,
+            assistantId,
             dto.query,
             dto.limit ?? 5,
         );
@@ -159,9 +159,9 @@ export class KnowledgeController {
         @UploadedFile() file: Express.Multer.File,
         @Body() body: { title?: string; docType?: string },
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!file) {
@@ -183,7 +183,7 @@ export class KnowledgeController {
 
         // Ingest the extracted content
         const document = await this.knowledgeService.ingestDocument(
-            tenantId,
+            assistantId,
             title,
             extraction.content,
             {
@@ -210,9 +210,9 @@ export class KnowledgeController {
         @UploadedFiles() files: Express.Multer.File[],
         @Body() body: { docType?: string },
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!files || files.length === 0) {
@@ -241,7 +241,7 @@ export class KnowledgeController {
 
                 const title = file.originalname.replace(/\.[^/.]+$/, '');
                 const document = await this.knowledgeService.ingestDocument(
-                    tenantId,
+                    assistantId,
                     title,
                     extraction.content,
                     {

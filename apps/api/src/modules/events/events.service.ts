@@ -68,7 +68,6 @@ export class EventsService {
         };
 
         const { error } = await this.supabase.from('events').insert({
-            tenant_id: tenantId,
             assistant_id: tenantId, // Add assistant_id
             conversation_id: conversationId,
             event_type: eventType,

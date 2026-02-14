@@ -26,9 +26,9 @@ export class EventsController {
         @Query('search') search?: string,
         @Query('limit') limit?: string,
     ) {
-        const tenantId = headers['x-assistant-id'] || headers['x-tenant-id'];
-        if (!tenantId) {
-            throw new HttpException('X-Assistant-ID or X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         const options: {
@@ -54,7 +54,7 @@ export class EventsController {
             options.limit = parseInt(limit, 10);
         }
 
-        const events = await this.eventsService.listEvents(tenantId, options);
+        const events = await this.eventsService.listEvents(assistantId, options);
         return { events };
     }
 

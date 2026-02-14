@@ -21,9 +21,9 @@ export class AssistantsController {
 
     @Get('me')
     async getCurrentAssistant(@Headers() headers: Record<string, string>) {
-        const assistantId = headers['x-assistant-id'] || headers['x-tenant-id'];
+        const assistantId = headers['x-assistant-id'];
         if (!assistantId) {
-            throw new BadRequestException('X-Assistant-ID or X-Tenant-ID header is required');
+            throw new BadRequestException('X-Assistant-ID header is required');
         }
         return this.assistantsService.getAssistantById(assistantId);
     }

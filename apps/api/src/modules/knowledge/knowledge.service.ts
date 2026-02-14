@@ -76,7 +76,6 @@ export class KnowledgeService {
             .from('documents')
             .insert({
                 assistant_id: tenantId, // Using tenantId arg as assistantId
-                tenant_id: tenantId,    // Keep for backward compatibility
                 title,
                 content,
                 source_url: options?.sourceUrl,

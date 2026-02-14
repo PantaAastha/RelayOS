@@ -220,7 +220,7 @@ export class AssistantsService {
         const { data: conversations, error: convFetchError } = await this.supabase
             .from('conversations')
             .select('id')
-            .eq('tenant_id', id);
+            .eq('assistant_id', id);
 
         if (convFetchError) {
             throw new Error(`Failed to fetch conversations: ${convFetchError.message}`);
@@ -246,7 +246,7 @@ export class AssistantsService {
         const { error: eventsAssistantError } = await this.supabase
             .from('events')
             .delete()
-            .eq('tenant_id', id);
+            .eq('assistant_id', id);
 
         if (eventsAssistantError) {
             throw new Error(`Failed to clean up assistant events: ${eventsAssistantError.message}`);
@@ -269,7 +269,7 @@ export class AssistantsService {
             const { error: convError } = await this.supabase
                 .from('conversations')
                 .delete()
-                .eq('tenant_id', id);
+                .eq('assistant_id', id);
 
             if (convError) {
                 throw new Error(`Failed to clean up conversations: ${convError.message}`);
@@ -281,7 +281,7 @@ export class AssistantsService {
         const { error: docsError } = await this.supabase
             .from('documents')
             .delete()
-            .eq('tenant_id', id);
+            .eq('assistant_id', id);
 
         if (docsError) {
             throw new Error(`Failed to clean up documents: ${docsError.message}`);
