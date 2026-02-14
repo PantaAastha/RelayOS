@@ -18,6 +18,7 @@ interface StarterQuestion {
 }
 
 interface TenantWidgetConfig {
+    assistantName: string;
     welcomeMessage: string;
     starterQuestions: StarterQuestion[];
     persona: { name?: string };
@@ -77,10 +78,18 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     useEffect(() => {
         const fetchWidgetConfig = async () => {
             try {
-                const response = await fetch(`${config.apiUrl}/tenants/${config.tenantId}/widget-config`);
+                // CHANGED: Use /assistants alias /tenants
+                const response = await fetch(`${config.apiUrl}/assistants/${config.tenantId}/widget-config`);
                 if (response.ok) {
                     const data = await response.json();
                     setTenantConfig(data);
+                } else {
+                    // Fallback to /tenants if /assistants fails (migration safety)
+                    const retry = await fetch(`${config.apiUrl}/tenants/${config.tenantId}/widget-config`);
+                    if (retry.ok) {
+                        const data = await retry.json();
+                        setTenantConfig(data);
+                    }
                 }
             } catch (e) {
                 console.warn('Failed to fetch widget config, using defaults', e);
@@ -112,8 +121,11 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     }));
 
     const position = config.position || 'bottom-right';
-    const primaryColor = config.primaryColor || '#2563eb';
-    const title = config.title || 'Chat with us';
+    const primaryColor = config.primaryColor || tenantConfig?.config?.primaryColor || '#2563eb';
+
+    // Title priority: Config Prop -> Assistant Config -> Assistant Name -> Default
+    const title = config.title || tenantConfig?.config?.widgetTitle || tenantConfig?.assistantName || 'Chat with us';
+
     const testMode = config.testMode || false;
 
     const handleReset = () => {
@@ -152,4 +164,3 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
 });
 
 Widget.displayName = 'Widget';
-

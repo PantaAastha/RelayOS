@@ -19,7 +19,7 @@ interface StarterQuestion {
     message: string;
 }
 
-interface TenantDetail {
+interface AssistantDetail {
     id: string;
     name: string;
     slug: string;
@@ -37,14 +37,14 @@ const defaultPersona: Persona = {
     customInstructions: '',
 };
 
-export default function TenantDetailPage() {
+export default function AssistantDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const tenantId = params.id as string;
+    const assistantId = params.id as string;
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [tenant, setTenant] = useState<TenantDetail | null>(null);
+    const [assistant, setAssistant] = useState<AssistantDetail | null>(null);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     // Form state
@@ -54,22 +54,24 @@ export default function TenantDetailPage() {
     const [starterQuestions, setStarterQuestions] = useState<StarterQuestion[]>([]);
 
     useEffect(() => {
-        fetchTenant();
-    }, [tenantId]);
+        if (assistantId) {
+            fetchAssistant();
+        }
+    }, [assistantId]);
 
-    const fetchTenant = async () => {
+    const fetchAssistant = async () => {
         try {
-            const res = await fetch(`${API_URL}/tenants/${tenantId}`);
-            if (!res.ok) throw new Error('Tenant not found');
+            const res = await fetch(`${API_URL}/assistants/${assistantId}`);
+            if (!res.ok) throw new Error('Assistant not found');
             const data = await res.json();
-            setTenant(data);
+            setAssistant(data);
             setPersona(data.persona || defaultPersona);
             setAssistantType(data.assistant_type || 'reactive');
             setWelcomeMessage(data.welcome_message || '');
             setStarterQuestions(data.starter_questions || []);
         } catch (e) {
-            console.error('Failed to load tenant:', e);
-            showToast('error', 'Failed to load tenant');
+            console.error('Failed to load assistant:', e);
+            showToast('error', 'Failed to load assistant');
         } finally {
             setLoading(false);
         }
@@ -83,7 +85,7 @@ export default function TenantDetailPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/tenants/${tenantId}`, {
+            const res = await fetch(`${API_URL}/assistants/${assistantId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -118,7 +120,7 @@ export default function TenantDetailPage() {
     };
 
     if (loading) return <div className="page-container"><div className="loading">Loading...</div></div>;
-    if (!tenant) return <div className="page-container"><div className="empty-state"><h3>Tenant not found</h3></div></div>;
+    if (!assistant) return <div className="page-container"><div className="empty-state"><h3>Assistant not found</h3></div></div>;
 
     const inputStyle: React.CSSProperties = {
         width: '100%', padding: '10px 12px', borderRadius: '8px',
@@ -157,10 +159,10 @@ export default function TenantDetailPage() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                    <Link href="/tenants" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none' }}>
-                        ← Back to Tenants
+                    <Link href="/assistants" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none' }}>
+                        ← Back to Assistants
                     </Link>
-                    <h1 className="page-title" style={{ marginTop: '8px' }}>{tenant.name}</h1>
+                    <h1 className="page-title" style={{ marginTop: '8px' }}>{assistant.name}</h1>
                     <p className="page-description">Configure AI persona and widget behavior</p>
                 </div>
                 <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>

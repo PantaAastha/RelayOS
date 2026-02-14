@@ -75,6 +75,7 @@ export default function AssistantsPage() {
                 setAssistants(prev => prev.filter(a => a.id !== deleteTargetId));
 
                 // Clear from localStorage if this was the current assistant
+                // Clear from localStorage if this was the current assistant
                 const currentAssistantId = localStorage.getItem('relayos_assistant_id');
                 // Also check legacy key
                 const currentTenantId = localStorage.getItem('relayos_tenant_id');
