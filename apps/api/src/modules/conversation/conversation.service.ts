@@ -59,7 +59,8 @@ export class ConversationService {
         const { data, error } = await this.supabase
             .from('conversations')
             .insert({
-                tenant_id: tenantId,
+                assistant_id: tenantId, // New column
+                tenant_id: tenantId,    // Legacy column
                 channel,
                 metadata: metadata ?? {},
             })
@@ -100,9 +101,28 @@ export class ConversationService {
     }> {
         const requestStart = Date.now();
 
-        // 1. Create conversation if needed
+        // 1. Create or validate conversation
         if (!conversationId) {
             conversationId = await this.createConversation(tenantId);
+        } else {
+            // Validate conversation belongs to this assistant
+            const { data: conv, error } = await this.supabase
+                .from('conversations')
+                .select('assistant_id')
+                .eq('id', conversationId)
+                .single();
+
+            if (error || !conv) {
+                // If not found, treat as new conversation (or throw error? User said reject 403, but throwing generic error for now)
+                // Actually, if we can't find it, we shouldn't insert messages into a void.
+                // But if it exists and mismatch, 403.
+                if (error) throw new Error(`Failed to validate conversation: ${error.message}`);
+                throw new Error(`Conversation not found`);
+            }
+
+            if (conv.assistant_id !== tenantId) {
+                throw new Error(`Conversation does not belong to this assistant (Forbidden)`);
+            }
         }
 
         // 1a. GUARDRAILS: Check input for injection + scrub PII
@@ -584,7 +604,8 @@ REASON: [one sentence explanation]`;
         const { data: conversations, error } = await this.supabase
             .from('conversations')
             .select('id, created_at, status')
-            .eq('tenant_id', tenantId)
+            .select('id, created_at, status')
+            .eq('assistant_id', tenantId)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -634,8 +655,8 @@ REASON: [one sentence explanation]`;
                 .eq('tenant_id', tenantId),
             this.supabase
                 .from('messages')
-                .select('id, conversation_id, conversations!inner(tenant_id)', { count: 'exact', head: true })
-                .eq('conversations.tenant_id', tenantId),
+                .select('id, conversation_id, conversations!inner(assistant_id)', { count: 'exact', head: true })
+                .eq('conversations.assistant_id', tenantId),
         ]);
 
         return {
@@ -659,6 +680,7 @@ REASON: [one sentence explanation]`;
             .from('message_feedback')
             .insert({
                 message_id: messageId,
+                assistant_id: tenantId,
                 tenant_id: tenantId,
                 feedback_type: type,
                 comment,

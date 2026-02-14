@@ -75,7 +75,8 @@ export class KnowledgeService {
         const { data: doc, error: docError } = await this.supabase
             .from('documents')
             .insert({
-                tenant_id: tenantId,
+                assistant_id: tenantId, // Using tenantId arg as assistantId
+                tenant_id: tenantId,    // Keep for backward compatibility
                 title,
                 content,
                 source_url: options?.sourceUrl,
@@ -184,9 +185,12 @@ export class KnowledgeService {
 
         // 3. Vector similarity search using pgvector
         // The <=> operator is cosine distance
+        // 3. Vector similarity search using pgvector
+        // The <=> operator is cosine distance
         const { data, error } = await this.supabase.rpc('match_documents', {
             query_embedding: embedding,
-            match_tenant_id: tenantId,
+            match_assistant_id: tenantId, // Pass as assistant_id
+            match_tenant_id: tenantId,    // Pass as tenant_id (fallback)
             match_count: limit,
             match_threshold: 0.2, // Lowered threshold for better recall
         });
@@ -331,7 +335,8 @@ export class KnowledgeService {
         const { data, error } = await this.supabase.rpc('hybrid_search', {
             query_text: processed.rewrittenQuery,
             query_embedding: embedding,
-            match_tenant_id: tenantId,
+            match_assistant_id: tenantId, // Pass as assistant_id
+            match_tenant_id: tenantId,    // Pass as tenant_id (fallback)
             match_count: fetchCount,
             rrf_k: 60, // RRF constant
         });
@@ -634,7 +639,7 @@ Most to least relevant (numbers only):`;
         const { data, error } = await this.supabase
             .from('documents')
             .select('*')
-            .eq('tenant_id', tenantId)
+            .eq('assistant_id', tenantId) // Query by assistant_id
             .eq('status', 'active')
             .order('created_at', { ascending: false });
 

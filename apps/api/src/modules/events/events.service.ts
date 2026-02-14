@@ -69,6 +69,7 @@ export class EventsService {
 
         const { error } = await this.supabase.from('events').insert({
             tenant_id: tenantId,
+            assistant_id: tenantId, // Add assistant_id
             conversation_id: conversationId,
             event_type: eventType,
             payload: enrichedPayload,
@@ -110,7 +111,7 @@ export class EventsService {
         let query = this.supabase
             .from('events')
             .select('*')
-            .eq('tenant_id', tenantId)
+            .eq('assistant_id', tenantId) // Query by assistant_id
             .eq('event_type', eventType)
             .order('created_at', { ascending: false })
             .limit(limit);
@@ -145,7 +146,7 @@ export class EventsService {
         let query = this.supabase
             .from('events')
             .select('*')
-            .eq('tenant_id', tenantId)
+            .eq('assistant_id', tenantId) // Query by assistant_id
             .order('created_at', { ascending: false })
             .limit(limit);
 

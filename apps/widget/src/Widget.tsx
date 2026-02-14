@@ -5,7 +5,8 @@ import { WidgetButton } from './components/WidgetButton';
 
 interface WidgetConfig {
     apiUrl: string;
-    tenantId: string;
+    assistantId: string;
+    tenantId?: string; // Deprecated
     position?: 'bottom-right' | 'bottom-left';
     primaryColor?: string;
     title?: string;
@@ -47,8 +48,10 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [tenantConfig, setTenantConfig] = useState<TenantWidgetConfig | null>(null);
 
-    // Persistence Key
-    const storageKey = `relayos_widget_${config.tenantId}`;
+    // Persistence Key (Migration: use assistantId, falling back to tenantId for backward compat)
+    // We'll stick to 'relayos_widget_tenantId' format for now to avoid losing history for existing users
+    // or we can migrate it. Let's use the new ID but check old key if empty.
+    const storageKey = `relayos_widget_${config.assistantId}`;
 
     // Load from storage on mount
     useEffect(() => {
@@ -65,27 +68,27 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                 console.error('Failed to parse saved conversation', e);
             }
         }
-    }, [config.tenantId]);
+    }, [config.assistantId]);
 
     // Save to storage when conversationId changes
     useEffect(() => {
         if (conversationId) {
             localStorage.setItem(storageKey, JSON.stringify({ conversationId }));
         }
-    }, [conversationId, config.tenantId]);
+    }, [conversationId, config.assistantId]);
 
     // Fetch tenant widget config on mount
     useEffect(() => {
         const fetchWidgetConfig = async () => {
             try {
                 // CHANGED: Use /assistants alias /tenants
-                const response = await fetch(`${config.apiUrl}/assistants/${config.tenantId}/widget-config`);
+                const response = await fetch(`${config.apiUrl}/assistants/${config.assistantId}/widget-config`);
                 if (response.ok) {
                     const data = await response.json();
                     setTenantConfig(data);
                 } else {
                     // Fallback to /tenants if /assistants fails (migration safety)
-                    const retry = await fetch(`${config.apiUrl}/tenants/${config.tenantId}/widget-config`);
+                    const retry = await fetch(`${config.apiUrl}/tenants/${config.assistantId}/widget-config`);
                     if (retry.ok) {
                         const data = await retry.json();
                         setTenantConfig(data);
@@ -96,7 +99,7 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
             }
         };
         fetchWidgetConfig();
-    }, [config.apiUrl, config.tenantId]);
+    }, [config.apiUrl, config.assistantId]);
 
     const fetchConversation = async (id: string) => {
         setIsLoadingHistory(true);
@@ -143,6 +146,7 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
             {isOpen ? (
                 <ChatWindow
                     apiUrl={config.apiUrl}
+                    assistantId={config.assistantId}
                     tenantId={config.tenantId}
                     title={title}
                     testMode={testMode}

@@ -32,7 +32,13 @@ export class CorrelationIdMiddleware implements NestMiddleware {
         req.tenantId = tenantId;
         req.requestStartTime = Date.now();
 
-        // Add to response headers for client tracing
+        // 2. Normalize Assistant/Tenant ID headers
+        if (req.headers['x-tenant-id'] && !req.headers['x-assistant-id']) {
+            req.headers['x-assistant-id'] = req.headers['x-tenant-id'];
+        }
+
+        // 3. Attach correlation ID to request for logging
+        req['correlationId'] = correlationId;
         res.setHeader('X-Correlation-ID', correlationId);
 
         next();
