@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface Event {
     id: number;
-    tenant_id: string;
+    tenant_id: string; // Keeping DB field name for now
     conversation_id: string | null;
     event_type: string;
     payload: Record<string, unknown>;
@@ -47,7 +47,7 @@ const EVENT_CATEGORIES: Record<string, string> = {
 export default function EventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tenantId, setTenantId] = useState('');
+    const [assistantId, setAssistantId] = useState('');
     const [eventTypes, setEventTypes] = useState<string[]>([]);
     const [selectedType, setSelectedType] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -55,14 +55,17 @@ export default function EventsPage() {
     const [autoRefresh, setAutoRefresh] = useState(false);
 
     useEffect(() => {
-        const savedTenantId = localStorage.getItem('relayos_tenant_id');
-        if (savedTenantId) {
-            setTenantId(savedTenantId);
+        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
+        if (savedAssistantId) {
+            setAssistantId(savedAssistantId);
         }
     }, []);
 
-    const fetchEvents = async () => {
-        if (!tenantId) return;
+    const fetchEvents = useCallback(async () => {
+        if (!assistantId) {
+            setLoading(false);
+            return;
+        }
 
         try {
             const params = new URLSearchParams();
@@ -71,8 +74,11 @@ export default function EventsPage() {
             params.append('limit', '100');
 
             const res = await fetch(`${API_URL}/events?${params}`, {
-                headers: { 'X-Tenant-ID': tenantId },
+                headers: { 'X-Assistant-ID': assistantId },
             });
+
+            if (!res.ok) throw new Error('Failed to fetch events');
+
             const data = await res.json();
             setEvents(data.events || []);
         } catch (error) {
@@ -80,32 +86,33 @@ export default function EventsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [assistantId, selectedType, searchQuery]);
 
-    const fetchEventTypes = async () => {
+    const fetchEventTypes = useCallback(async () => {
         try {
             const res = await fetch(`${API_URL}/events/types`);
+            if (!res.ok) throw new Error('Failed to fetch types');
             const data = await res.json();
             setEventTypes(data.types || []);
         } catch (error) {
             console.error('Failed to fetch event types:', error);
         }
-    };
-
-    useEffect(() => {
-        fetchEventTypes();
     }, []);
 
     useEffect(() => {
+        fetchEventTypes();
+    }, [fetchEventTypes]);
+
+    useEffect(() => {
         fetchEvents();
-    }, [tenantId, selectedType, searchQuery]);
+    }, [fetchEvents]);
 
     // Auto-refresh
     useEffect(() => {
         if (!autoRefresh) return;
         const interval = setInterval(fetchEvents, 5000);
         return () => clearInterval(interval);
-    }, [autoRefresh, tenantId, selectedType, searchQuery]);
+    }, [autoRefresh, fetchEvents]);
 
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -158,14 +165,14 @@ export default function EventsPage() {
         return '';
     };
 
-    if (!tenantId) {
+    if (!assistantId) {
         return (
             <div>
                 <div className="page-header">
                     <h1 className="page-title">Events</h1>
                 </div>
                 <div className="empty-state">
-                    <p>Please set your tenant ID on the dashboard first.</p>
+                    <p>Please set your assistant ID on the dashboard first.</p>
                     <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
                         Go to Dashboard
                     </Link>

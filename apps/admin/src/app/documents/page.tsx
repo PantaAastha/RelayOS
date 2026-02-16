@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -23,7 +23,7 @@ interface Toast {
 export default function DocumentsPage() {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tenantId, setTenantId] = useState('');
+    const [assistantId, setAssistantId] = useState('');
     const [reingestingId, setReingestingId] = useState<string | null>(null);
     const [reingestingAll, setReingestingAll] = useState(false);
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -39,17 +39,17 @@ export default function DocumentsPage() {
     };
 
     useEffect(() => {
-        const savedTenantId = localStorage.getItem('relayos_tenant_id');
-        if (savedTenantId) {
-            setTenantId(savedTenantId);
+        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
+        if (savedAssistantId) {
+            setAssistantId(savedAssistantId);
         }
     }, []);
 
-    const fetchDocuments = async () => {
-        if (!tenantId) return;
+    const fetchDocuments = useCallback(async () => {
+        if (!assistantId) return;
         try {
             const res = await fetch(`${API_URL}/knowledge/documents`, {
-                headers: { 'X-Tenant-ID': tenantId },
+                headers: { 'X-Assistant-ID': assistantId },
             });
             const data = await res.json();
             setDocuments(data.documents || []);
@@ -58,11 +58,11 @@ export default function DocumentsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [assistantId]);
 
     useEffect(() => {
         fetchDocuments();
-    }, [tenantId]);
+    }, [fetchDocuments]);
 
     const handleDeleteClick = (id: string) => {
         setDeleteTargetId(id);
@@ -74,7 +74,7 @@ export default function DocumentsPage() {
         try {
             await fetch(`${API_URL}/knowledge/documents/${deleteTargetId}`, {
                 method: 'DELETE',
-                headers: { 'X-Tenant-ID': tenantId },
+                headers: { 'X-Assistant-ID': assistantId },
             });
             setDocuments(documents.filter(d => d.id !== deleteTargetId));
             showToast('success', 'Deleted', 'Document removed from knowledge base');
@@ -91,7 +91,7 @@ export default function DocumentsPage() {
         try {
             const res = await fetch(`${API_URL}/knowledge/documents/${id}/reingest`, {
                 method: 'POST',
-                headers: { 'X-Tenant-ID': tenantId },
+                headers: { 'X-Assistant-ID': assistantId },
             });
             const data = await res.json();
             if (data.success) {
@@ -116,7 +116,7 @@ export default function DocumentsPage() {
         try {
             const res = await fetch(`${API_URL}/knowledge/reingest-all`, {
                 method: 'POST',
-                headers: { 'X-Tenant-ID': tenantId },
+                headers: { 'X-Assistant-ID': assistantId },
             });
             const data = await res.json();
 
@@ -153,14 +153,14 @@ export default function DocumentsPage() {
         </svg>
     );
 
-    if (!tenantId) {
+    if (!assistantId) {
         return (
             <div>
                 <div className="page-header">
                     <h1 className="page-title">Documents</h1>
                 </div>
                 <div className="empty-state">
-                    <p>Please set your tenant ID on the dashboard first.</p>
+                    <p>Please set your assistant ID on the dashboard first.</p>
                     <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
                         Go to Dashboard
                     </Link>

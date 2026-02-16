@@ -1,6 +1,6 @@
 /**
- * Tenant-Aware Throttler Guard
- * Uses tenant ID as the tracking key so limits are per-tenant, not per-IP
+ * Assistant-Aware Throttler Guard (formerly Tenant-Aware)
+ * Uses assistant ID as the tracking key so limits are per-assistant, not per-IP
  */
 
 import { Injectable, ExecutionContext } from '@nestjs/common';
@@ -8,16 +8,17 @@ import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Request } from 'express';
 
 @Injectable()
-export class TenantThrottlerGuard extends ThrottlerGuard {
+export class AssistantThrottlerGuard extends ThrottlerGuard {
     /**
-     * Get the tracker key - use tenant ID if available, otherwise fall back to IP
+     * Get the tracker key - use assistant ID if available, otherwise fall back to IP
      */
     protected async getTracker(req: Request): Promise<string> {
-        const tenantId = req.headers['x-tenant-id'] as string;
+        // Support only new header
+        const assistantId = req.headers['x-assistant-id'] as string;
         const ip = req.ip || req.socket?.remoteAddress || 'unknown';
 
-        // Use tenant ID for authenticated requests, IP for anonymous
-        return tenantId ? `tenant:${tenantId}` : `ip:${ip}`;
+        // Use assistant ID for authenticated requests, IP for anonymous
+        return assistantId ? `assistant:${assistantId}` : `ip:${ip}`;
     }
 
     /**
@@ -27,11 +28,11 @@ export class TenantThrottlerGuard extends ThrottlerGuard {
         context: ExecutionContext,
     ): Promise<void> {
         const request = context.switchToHttp().getRequest<Request>();
-        const tenantId = request.headers['x-tenant-id'] as string;
+        const assistantId = request.headers['x-assistant-id'] as string;
 
         throw new ThrottlerException(
-            tenantId
-                ? `Rate limit exceeded for tenant. Please wait before making more requests.`
+            assistantId
+                ? `Rate limit exceeded for assistant. Please wait before making more requests.`
                 : `Rate limit exceeded. Please wait before making more requests.`,
         );
     }

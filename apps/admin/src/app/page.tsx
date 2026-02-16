@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '';
+const ASSISTANT_ID = process.env.NEXT_PUBLIC_ASSISTANT_ID || '';
 
 interface Stats {
   documentsCount: number;
@@ -14,65 +14,71 @@ interface Stats {
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tenantId, setTenantId] = useState(TENANT_ID);
-  const [inputTenantId, setInputTenantId] = useState('');
-  const [showTenantModal, setShowTenantModal] = useState(false);
+  const [assistantId, setAssistantId] = useState(ASSISTANT_ID);
+  const [inputAssistantId, setInputAssistantId] = useState('');
+  const [showAssistantModal, setShowAssistantModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const savedTenantId = localStorage.getItem('relayos_tenant_id');
-    if (savedTenantId) {
-      setTenantId(savedTenantId);
+    // Check for assistant ID, fallback to tenant ID for migration
+    const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
+    if (savedAssistantId) {
+      setAssistantId(savedAssistantId);
+      // Migrate if needed
+      if (!localStorage.getItem('relayos_assistant_id')) {
+        localStorage.setItem('relayos_assistant_id', savedAssistantId);
+      }
     }
   }, []);
 
-  useEffect(() => {
-    if (!tenantId) {
+  const fetchStats = useCallback(async () => {
+    if (!assistantId) {
       setLoading(false);
       return;
     }
 
-    const fetchStats = async () => {
-      try {
-        const res = await fetch(`${API_URL}/conversation/stats`, {
-          headers: { 'X-Tenant-ID': tenantId },
-        });
-        const data = await res.json();
-        setStats(data);
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const res = await fetch(`${API_URL}/conversation/stats`, {
+        headers: { 'X-Assistant-ID': assistantId },
+      });
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [assistantId]);
 
+  useEffect(() => {
     fetchStats();
-  }, [tenantId]);
+  }, [fetchStats]);
 
-  const handleSaveTenant = () => {
-    if (inputTenantId.trim()) {
-      localStorage.setItem('relayos_tenant_id', inputTenantId.trim());
-      setTenantId(inputTenantId.trim());
-      setShowTenantModal(false);
-      setInputTenantId('');
+  const handleSaveAssistant = () => {
+    if (inputAssistantId.trim()) {
+      localStorage.setItem('relayos_assistant_id', inputAssistantId.trim());
+      setAssistantId(inputAssistantId.trim());
+      setShowAssistantModal(false);
+      setInputAssistantId('');
       window.location.reload();
     }
   };
 
-  const handleCopyTenantId = () => {
-    navigator.clipboard.writeText(tenantId);
+  const handleCopyAssistantId = () => {
+    navigator.clipboard.writeText(assistantId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleClearTenant = () => {
-    localStorage.removeItem('relayos_tenant_id');
-    setTenantId('');
+  const handleClearAssistant = () => {
+    localStorage.removeItem('relayos_assistant_id');
+    localStorage.removeItem('relayos_tenant_id'); // Clear legacy too
+    setAssistantId('');
     setStats(null);
   };
 
-  // Empty state - no tenant configured
-  if (!tenantId) {
+  // Empty state - no assistant configured
+  if (!assistantId) {
     return (
       <div>
         <div className="page-header">
@@ -86,30 +92,30 @@ export default function Dashboard() {
               <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
           </div>
-          <h2 className="tenant-setup-title">Connect Your Tenant</h2>
+          <h2 className="tenant-setup-title">Connect Your Assistant</h2>
           <p className="tenant-setup-description">
-            Enter your tenant UUID to access your knowledge base and conversations.
+            Enter your Assistant UUID to access your knowledge base and conversations.
           </p>
           <div className="tenant-input-group">
             <input
               type="text"
               className="form-input"
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              value={inputTenantId}
-              onChange={(e) => setInputTenantId(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveTenant()}
+              value={inputAssistantId}
+              onChange={(e) => setInputAssistantId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveAssistant()}
               style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '14px' }}
             />
             <button
               className="btn btn-primary"
-              onClick={handleSaveTenant}
-              disabled={!inputTenantId.trim()}
+              onClick={handleSaveAssistant}
+              disabled={!inputAssistantId.trim()}
             >
               Connect
             </button>
           </div>
           <p className="tenant-setup-help">
-            Don't have a tenant ID? Create one in your Supabase dashboard.
+            Select an assistant from the Assistants page or create a new one.
           </p>
         </div>
       </div>
@@ -118,32 +124,32 @@ export default function Dashboard() {
 
   return (
     <div>
-      {/* Tenant change modal */}
-      {showTenantModal && (
-        <div className="modal-overlay" onClick={() => setShowTenantModal(false)}>
+      {/* Assistant change modal */}
+      {showAssistantModal && (
+        <div className="modal-overlay" onClick={() => setShowAssistantModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3 className="modal-title">Change Tenant</h3>
-            <p className="modal-message">Enter a new tenant UUID to switch workspaces.</p>
+            <h3 className="modal-title">Switch Assistant</h3>
+            <p className="modal-message">Enter a new assistant UUID to switch workspaces.</p>
             <input
               type="text"
               className="form-input"
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              value={inputTenantId}
-              onChange={(e) => setInputTenantId(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveTenant()}
+              value={inputAssistantId}
+              onChange={(e) => setInputAssistantId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveAssistant()}
               style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '14px', marginBottom: '16px' }}
               autoFocus
             />
             <div className="modal-actions">
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowTenantModal(false)}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowAssistantModal(false)}>
                 Cancel
               </button>
               <button
                 className="btn btn-primary btn-sm"
-                onClick={handleSaveTenant}
-                disabled={!inputTenantId.trim()}
+                onClick={handleSaveAssistant}
+                disabled={!inputAssistantId.trim()}
               >
-                Switch Tenant
+                Switch Assistant
               </button>
             </div>
           </div>
@@ -155,21 +161,21 @@ export default function Dashboard() {
         <p className="page-description">Overview of your AI support copilot</p>
       </div>
 
-      {/* Tenant info card */}
+      {/* Assistant info card */}
       <div className="tenant-info-card">
         <div className="tenant-info-header">
-          <span className="tenant-info-label">Current Tenant</span>
+          <span className="tenant-info-label">Current Assistant</span>
           <div className="tenant-info-actions">
             <button
               className="btn btn-ghost btn-sm"
-              onClick={() => setShowTenantModal(true)}
-              title="Switch tenant"
+              onClick={() => setShowAssistantModal(true)}
+              title="Switch assistant"
             >
               Switch
             </button>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={handleClearTenant}
+              onClick={handleClearAssistant}
               title="Disconnect"
               style={{ color: 'var(--error)' }}
             >
@@ -178,10 +184,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="tenant-id-display">
-          <code className="tenant-id-code">{tenantId}</code>
+          <code className="tenant-id-code">{assistantId}</code>
           <button
             className="btn btn-ghost btn-icon"
-            onClick={handleCopyTenantId}
+            onClick={handleCopyAssistantId}
             title={copied ? 'Copied!' : 'Copy to clipboard'}
           >
             {copied ? (

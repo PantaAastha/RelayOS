@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -16,34 +16,34 @@ interface Conversation {
 export default function ConversationsPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tenantId, setTenantId] = useState('');
+    const [assistantId, setAssistantId] = useState('');
 
     useEffect(() => {
-        const savedTenantId = localStorage.getItem('relayos_tenant_id');
-        if (savedTenantId) {
-            setTenantId(savedTenantId);
+        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
+        if (savedAssistantId) {
+            setAssistantId(savedAssistantId);
         }
     }, []);
 
+    const fetchConversations = useCallback(async () => {
+        if (!assistantId) return;
+
+        try {
+            const res = await fetch(`${API_URL}/conversation`, {
+                headers: { 'X-Assistant-ID': assistantId },
+            });
+            const data = await res.json();
+            setConversations(data.conversations || []);
+        } catch (error) {
+            console.error('Failed to fetch conversations:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [assistantId]);
+
     useEffect(() => {
-        if (!tenantId) return;
-
-        const fetchConversations = async () => {
-            try {
-                const res = await fetch(`${API_URL}/conversation`, {
-                    headers: { 'X-Tenant-ID': tenantId },
-                });
-                const data = await res.json();
-                setConversations(data.conversations || []);
-            } catch (error) {
-                console.error('Failed to fetch conversations:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchConversations();
-    }, [tenantId]);
+    }, [fetchConversations]);
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('en-US', {
@@ -67,14 +67,14 @@ export default function ConversationsPage() {
         }
     };
 
-    if (!tenantId) {
+    if (!assistantId) {
         return (
             <div>
                 <div className="page-header">
                     <h1 className="page-title">Conversations</h1>
                 </div>
                 <div className="empty-state">
-                    <p>Please set your tenant ID on the dashboard first.</p>
+                    <p>Please set your assistant ID on the dashboard first.</p>
                     <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
                         Go to Dashboard
                     </Link>

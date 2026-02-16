@@ -39,12 +39,13 @@ export class ConversationController {
      */
     @Post('message')
     async sendMessage(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Body() dto: SendMessageDto,
         @Req() req: Request,
     ) {
-        if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.content) {
@@ -53,7 +54,7 @@ export class ConversationController {
 
         try {
             const result = await this.conversationService.sendMessage(
-                tenantId,
+                assistantId,
                 dto.conversationId ?? null,
                 dto.content,
                 req.correlationId,
@@ -73,11 +74,12 @@ export class ConversationController {
      */
     @Post('escalate')
     async escalate(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Body() dto: EscalateDto,
     ) {
-        if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.conversationId) {
@@ -85,7 +87,7 @@ export class ConversationController {
         }
 
         const result = await this.conversationService.requestHandoff(
-            tenantId,
+            assistantId,
             dto.conversationId,
             dto.reason,
         );
@@ -98,12 +100,14 @@ export class ConversationController {
      * IMPORTANT: Must be defined BEFORE :id route
      */
     @Get('stats')
-    async getStats(@Headers('x-tenant-id') tenantId: string) {
-        if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+    @Get('stats')
+    async getStats(@Headers() headers: Record<string, string>) {
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
-        const stats = await this.conversationService.getStats(tenantId);
+        const stats = await this.conversationService.getStats(assistantId);
         return stats;
     }
 
@@ -111,12 +115,14 @@ export class ConversationController {
      * GET /conversation - List all conversations for tenant
      */
     @Get()
-    async listConversations(@Headers('x-tenant-id') tenantId: string) {
-        if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+    @Get()
+    async listConversations(@Headers() headers: Record<string, string>) {
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
-        const conversations = await this.conversationService.listConversations(tenantId);
+        const conversations = await this.conversationService.listConversations(assistantId);
         return { conversations };
     }
 
@@ -140,11 +146,12 @@ export class ConversationController {
      */
     @Post('feedback')
     async submitFeedback(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Body() dto: FeedbackDto,
     ) {
-        if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.messageId || !dto.type) {
@@ -152,7 +159,7 @@ export class ConversationController {
         }
 
         const result = await this.conversationService.submitFeedback(
-            tenantId,
+            assistantId,
             dto.messageId,
             dto.type,
             dto.comment,

@@ -155,7 +155,7 @@ export class HealthValidationService {
 
             const { error } = await this.supabase.rpc('match_documents', {
                 query_embedding: dummyEmbedding,
-                match_tenant_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID for validation
+                match_assistant_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID for validation
                 match_count: 1,
                 match_threshold: 0.99,
             });

@@ -75,6 +75,7 @@ interface EvaluationResult {
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 const TENANT_ID = process.env.TENANT_ID || '';
+const ASSISTANT_ID = process.env.ASSISTANT_ID || '';
 const VERBOSE = process.env.VERBOSE === 'true';
 
 // ============== API Client ==============
@@ -84,12 +85,19 @@ async function sendMessage(tenantId: string, message: string): Promise<{
     confidence: number;
     grade: string;
 }> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
+
+    if (process.env.ASSISTANT_ID) {
+        headers['x-assistant-id'] = process.env.ASSISTANT_ID;
+    } else {
+        headers['x-tenant-id'] = tenantId;
+    }
+
     const response = await fetch(`${API_URL}/conversation/message`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-tenant-id': tenantId,
-        },
+        headers,
         body: JSON.stringify({ content: message }),
     });
 
@@ -414,11 +422,11 @@ async function main() {
     }
 
     const pack: QuestionPack = JSON.parse(fs.readFileSync(questionsPath, 'utf-8'));
-    const tenantId = TENANT_ID;
+    const tenantId = TENANT_ID || ASSISTANT_ID;
 
     if (!tenantId) {
-        console.error('❌ TENANT_ID environment variable required');
-        console.error('   Usage: TENANT_ID=your-tenant-id npm run test:canonical');
+        console.error('❌ TENANT_ID or ASSISTANT_ID environment variable required');
+        console.error('   Usage: ASSISTANT_ID=your-id npm run test:canonical');
         process.exit(1);
     }
 

@@ -8,7 +8,8 @@ import styles from './styles.css?inline';
 
 interface RelayOSConfig {
     apiUrl: string;
-    tenantId: string;
+    assistantId: string;
+    tenantId?: string; // Reprecated: alias for assistantId
     position?: 'bottom-right' | 'bottom-left';
     primaryColor?: string;
     title?: string;
@@ -73,7 +74,13 @@ window.RelayOS = {
             console.warn('RelayOS widget already initialized');
             return;
         }
-        widgetInstance = createWidget(config);
+        // Backward compatibility: use tenantId if assistantId is missing
+        const normConfig = { ...config };
+        if (!normConfig.assistantId && normConfig.tenantId) {
+            normConfig.assistantId = normConfig.tenantId;
+        }
+
+        widgetInstance = createWidget(normConfig);
     },
     open: () => widgetInstance?.open(),
     close: () => widgetInstance?.close(),
@@ -83,12 +90,12 @@ window.RelayOS = {
 const script = document.currentScript as HTMLScriptElement | null;
 if (script) {
     const apiUrl = script.dataset.apiUrl;
-    const tenantId = script.dataset.tenantId;
+    const assistantId = script.dataset.assistantId || script.dataset.tenantId;
 
-    if (apiUrl && tenantId) {
+    if (apiUrl && assistantId) {
         window.RelayOS.init({
             apiUrl,
-            tenantId,
+            assistantId,
             position: (script.dataset.position as 'bottom-right' | 'bottom-left') || 'bottom-right',
             primaryColor: script.dataset.primaryColor,
             title: script.dataset.title,

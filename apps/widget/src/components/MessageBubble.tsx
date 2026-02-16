@@ -12,21 +12,21 @@ interface Message {
 interface MessageBubbleProps {
     message: Message;
     apiUrl?: string;
-    tenantId?: string;
+    assistantId?: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, apiUrl, tenantId }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, apiUrl, assistantId }) => {
     const [feedbackGiven, setFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
 
     const submitFeedback = async (type: 'positive' | 'negative') => {
-        if (feedbackGiven || !apiUrl || !tenantId) return;
+        if (feedbackGiven || !apiUrl || !assistantId) return;
 
         try {
             const res = await fetch(`${apiUrl}/conversation/feedback`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tenant-ID': tenantId,
+                    'X-Assistant-ID': assistantId,
                 },
                 body: JSON.stringify({ messageId: message.id, type }),
             });

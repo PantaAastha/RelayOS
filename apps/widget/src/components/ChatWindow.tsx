@@ -18,7 +18,8 @@ interface StarterQuestion {
 
 interface ChatWindowProps {
     apiUrl: string;
-    tenantId: string;
+    assistantId: string;
+    tenantId?: string; // Deprecated
     title: string;
     testMode?: boolean;
     conversationId: string | null;
@@ -34,7 +35,8 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
     apiUrl,
-    tenantId,
+    assistantId,
+    tenantId, // Keeping for backward compat if needed internally, but prefer assistantId
     title,
     testMode,
     conversationId,
@@ -74,8 +76,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tenant-ID': tenantId,
-                },
+                    'X-Assistant-ID': assistantId,
+                    ...(tenantId ? { 'X-Tenant-ID': tenantId } : {}),
+                } as HeadersInit,
                 body: JSON.stringify({
                     conversationId,
                     content: content.trim(),
@@ -119,8 +122,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tenant-ID': tenantId,
-                },
+                    'X-Assistant-ID': assistantId,
+                    ...(tenantId ? { 'X-Tenant-ID': tenantId } : {}),
+                } as HeadersInit,
                 body: JSON.stringify({ conversationId }),
             });
 
@@ -211,7 +215,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     </div>
                 )}
                 {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} apiUrl={apiUrl} tenantId={tenantId} />
+                    <MessageBubble key={msg.id} message={msg} apiUrl={apiUrl} assistantId={assistantId} />
                 ))}
                 {isLoading && (
                     <div className="typing-indicator">

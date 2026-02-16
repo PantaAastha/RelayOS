@@ -12,7 +12,7 @@ declare global {
     namespace Express {
         interface Request {
             correlationId: string;
-            tenantId?: string;
+            assistantId?: string;
             requestStartTime: number;
         }
     }
@@ -24,15 +24,12 @@ export class CorrelationIdMiddleware implements NestMiddleware {
         // Use existing correlation ID or generate new one
         const correlationId = (req.headers['x-correlation-id'] as string) || randomUUID();
 
-        // Extract tenant ID from header
-        const tenantId = req.headers['x-tenant-id'] as string;
-
         // Attach to request for downstream use
         req.correlationId = correlationId;
-        req.tenantId = tenantId;
         req.requestStartTime = Date.now();
 
-        // Add to response headers for client tracing
+        // 3. Attach correlation ID to request for logging
+        req['correlationId'] = correlationId;
         res.setHeader('X-Correlation-ID', correlationId);
 
         next();

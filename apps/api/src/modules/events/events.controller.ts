@@ -20,14 +20,15 @@ export class EventsController {
      */
     @Get()
     async listEvents(
-        @Headers('x-tenant-id') tenantId: string,
+        @Headers() headers: Record<string, string>,
         @Query('type') eventType?: string,
         @Query('since') since?: string,
         @Query('search') search?: string,
         @Query('limit') limit?: string,
     ) {
-        if (!tenantId) {
-            throw new HttpException('X-Tenant-ID header is required', HttpStatus.BAD_REQUEST);
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         const options: {
@@ -53,7 +54,7 @@ export class EventsController {
             options.limit = parseInt(limit, 10);
         }
 
-        const events = await this.eventsService.listEvents(tenantId, options);
+        const events = await this.eventsService.listEvents(assistantId, options);
         return { events };
     }
 

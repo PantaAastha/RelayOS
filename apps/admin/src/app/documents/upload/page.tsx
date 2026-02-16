@@ -21,7 +21,7 @@ interface SupportedTypes {
 
 export default function UploadDocumentPage() {
     const router = useRouter();
-    const [tenantId, setTenantId] = useState('');
+    const [assistantId, setAssistantId] = useState('');
     const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -35,9 +35,9 @@ export default function UploadDocumentPage() {
     const [content, setContent] = useState('');
 
     useEffect(() => {
-        const savedTenantId = localStorage.getItem('relayos_tenant_id');
-        if (savedTenantId) {
-            setTenantId(savedTenantId);
+        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
+        if (savedAssistantId) {
+            setAssistantId(savedAssistantId);
         }
 
         // Fetch supported file types
@@ -127,7 +127,7 @@ export default function UploadDocumentPage() {
             const res = await fetch(`${API_URL}/knowledge/upload-batch`, {
                 method: 'POST',
                 headers: {
-                    'X-Tenant-ID': tenantId,
+                    'X-Assistant-ID': assistantId,
                 },
                 body: formData,
             });
@@ -179,7 +179,7 @@ export default function UploadDocumentPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tenant-ID': tenantId,
+                    'X-Assistant-ID': assistantId,
                 },
                 body: JSON.stringify({
                     title: title.trim(),
@@ -200,14 +200,14 @@ export default function UploadDocumentPage() {
         }
     };
 
-    if (!tenantId) {
+    if (!assistantId) {
         return (
             <div>
                 <div className="page-header">
                     <h1 className="page-title">Upload Document</h1>
                 </div>
                 <div className="empty-state">
-                    <p>Please set your tenant ID on the dashboard first.</p>
+                    <p>Please set your assistant ID on the dashboard first.</p>
                     <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
                         Go to Dashboard
                     </Link>
