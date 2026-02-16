@@ -50,8 +50,7 @@ export const assistants = pgTable('assistants', {
 // Conversations
 export const conversations = pgTable('conversations', {
     id: uuid('id').primaryKey().defaultRandom(),
-    // tenant_id now refers to assistant_id
-    tenantId: uuid('tenant_id').references(() => assistants.id),
+    assistantId: uuid('assistant_id').references(() => assistants.id),
     externalId: text('external_id'),
     channel: text('channel').notNull().default('web'), // web, whatsapp, api
     status: text('status').notNull().default('active'), // active, handed_off, closed
@@ -59,7 +58,7 @@ export const conversations = pgTable('conversations', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => [
-    index('idx_conversations_tenant').on(table.tenantId),
+    index('idx_conversations_assistant_id').on(table.assistantId),
     index('idx_conversations_status').on(table.status),
 ]);
 
@@ -86,8 +85,7 @@ export const messages = pgTable('messages', {
 // Knowledge base documents
 export const documents = pgTable('documents', {
     id: uuid('id').primaryKey().defaultRandom(),
-    // tenant_id now refers to assistant_id
-    tenantId: uuid('tenant_id').references(() => assistants.id),
+    assistantId: uuid('assistant_id').references(() => assistants.id),
     title: text('title').notNull(),
     content: text('content').notNull(),
     sourceUrl: text('source_url'),
@@ -97,7 +95,7 @@ export const documents = pgTable('documents', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => [
-    index('idx_documents_tenant').on(table.tenantId),
+    index('idx_documents_assistant_id').on(table.assistantId),
     index('idx_documents_status').on(table.status),
 ]);
 
@@ -118,14 +116,13 @@ export const documentChunks = pgTable('document_chunks', {
 // Append-only event log (THE CORE OF "OS")
 export const events = pgTable('events', {
     id: serial('id').primaryKey(),
-    // tenant_id now refers to assistant_id
-    tenantId: uuid('tenant_id').references(() => assistants.id),
+    assistantId: uuid('assistant_id').references(() => assistants.id),
     conversationId: uuid('conversation_id').references(() => conversations.id),
     eventType: text('event_type').notNull(),
     payload: jsonb('payload').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => [
-    index('idx_events_tenant').on(table.tenantId),
+    index('idx_events_assistant_id').on(table.assistantId),
     index('idx_events_conversation').on(table.conversationId),
     index('idx_events_type').on(table.eventType),
     index('idx_events_created').on(table.createdAt),
