@@ -1,8 +1,8 @@
-<!-- FILE: ROADMAPV2.md -->
-# RelayOS V2 Roadmap
+# RelayOS V2 Roadmap (Updated)
 
 > **Goal:** Build the most capable multi-assistant AI platform for B2B teams.
 > **Principles:** Ship in demo-ready slices · Measure everything · Premium UX from day one.
+> **Updated:** February 25, 2026 — reconciled with UI/UX Vision doc + Trust Architecture layer inserted.
 
 ## Priority Legend
 - 🔴 Critical (must ship for impressive demo)
@@ -58,13 +58,20 @@
 
 ---
 
-## Milestone 0 — Product Spine & Packaging (🔴)
-**Outcome:** RelayOS feels like a product, not a set of features.
+## Milestone 0 — Product Spine & UI Primitives (🔴)
+**Outcome:** RelayOS feels like a product, not a set of features. Every screen has a place.
 
-### Navigation & IA
-- [ ] 🔴 Restructure sidebar nav: **Assistants · Knowledge · Quality · Integrations · Settings**
-- [ ] 🔴 "Single-org mode" (default) + optional org switcher (feature flag)
-- [ ] 🔴 Consistent UI primitives (cards, tables, chips, empty states, skeletons)
+### Navigation & Information Architecture
+- [ ] 🔴 Restructure sidebar nav: **Dashboard · Assistants · Knowledge · Quality · Integrations · Settings**
+- [ ] 🔴 "Single-org mode" (default) + optional org switcher (feature flag for multi-tenant deployments)
+- [ ] 🔴 Consistent UI primitive library: cards, tables, status chips, empty states, skeleton loaders
+- [ ] 🔴 Empty states must always include a CTA — no dead ends anywhere in the product
+
+### Design System Baseline (feeds all subsequent milestones)
+- [ ] 🔴 Status chip component with animated state transitions (Draft → Live, queued → running → complete)
+- [ ] 🔴 Skeleton loading for all data-fetching surfaces
+- [ ] 🔴 Toast notification system ("Copied", "Saved", "Sync started")
+- [ ] 🟡 Optimistic updates where safe (config saves, feedback reactions)
 
 ### Demo Pack
 - [ ] 🔴 Seed script: creates org + 3 assistants + sample docs + sample conversations
@@ -72,187 +79,343 @@
 - [ ] 🔴 Update `docker-compose` for clean one-command startup
 
 **Acceptance**
-- Admin loads with a coherent nav
+- Admin loads with a coherent, navigable product spine
+- No screen has an empty state without a clear next action
+- Status chips animate on state changes
 - Demo can be launched by another person without code edits
 
 ---
 
 ## Milestone 1 — Assistant Studio (🔴)
-**Outcome:** Create → configure → test → deploy assistants from one place.
+**Outcome:** Create → configure → test → deploy assistants from one place. The "wow" screen.
 
 ### Assistants List
-- [ ] 🔴 Enhance assistants list page (cards/table):
-  - Name, template type, status (Draft/Live/Needs attention)
-  - Quick stats placeholders (7d conversations, supported%, handoff%)
+- [ ] 🔴 Assistants list page (cards or table):
+  - Name + template type chip (Support / Docs / Onboarding)
+  - Status chip (Draft / Live / Needs Attention)
+  - Quick stats: 7d conversations, supported%, handoff%
   - Actions: Open Studio, Duplicate, Archive
+- [ ] 🔴 Empty state: "Create your first assistant" + 3 template buttons
 
-### Assistant Studio (Tabs)
-- [ ] 🔴 Studio layout: split-view (config tabs left, live preview right)
-- [ ] 🔴 Persona tab: tone, boundaries, welcome message, starters (refine existing config page)
-- [ ] 🔴 Behavior tab: template type + behavior mode config
-  - Support (reactive)
-  - Docs (reference)
-  - Onboarding (guided)
-- [ ] 🔴 Knowledge tab: show attached documents count (Collections in M3)
-- [ ] 🔴 Handoff tab: n8n workflow URL + thresholds
-- [ ] 🔴 Widget tab: theme tokens + header/title/avatar (extend existing config JSONB)
-- [ ] 🔴 Deploy tab: embed snippet generator + env tips + domain allowlist
+### Assistant Studio Layout
+- [ ] 🔴 Split-view layout: config tabs (left) + Live Preview panel (right)
+- [ ] 🔴 Smooth panel transitions between tabs (no jarring reloads)
 
-### Live Preview (Must-have)
-- [ ] 🔴 Preview panel with citations + confidence + refusal behavior
-- [ ] 🔴 "Preview as page context" toggle (simulate URL/section/user plan)
+### Studio Tabs
+1. **Persona**
+   - [ ] 🔴 Tone, boundaries, welcome message, starter questions
+   - [ ] 🔴 Refine existing config page into this tab
+
+2. **Behavior** *(includes Delegation Control Surface — Trust Architecture)*
+   - [ ] 🔴 Template type selector: Support (reactive) / Docs (reference) / Onboarding (guided)
+   - [ ] 🔴 Behavior mode config per type
+   - [ ] 🔴 **Delegation controls** — operator-facing surface for defining the boundary between autonomous and escalated decisions:
+     - Confidence threshold for autonomous answers (below threshold → escalate or refuse, not silently hallucinate)
+     - Actions allowed without user confirmation (read-only operations)
+     - Actions that always require user confirmation before execution (writes, ticket creation, DB mutations)
+     - Hard refusal topics (persona boundaries enforced at generation layer, not just prompt)
+   - [ ] 🟡 "Autonomy level" summary chip (Conservative / Balanced / Proactive) derived from delegation config — visible on Assistants list as an operator trust signal
+
+3. **Knowledge**
+   - [ ] 🔴 Show attached collections + document count (Collections built in M3)
+
+4. **Handoff**
+   - [ ] 🔴 n8n workflow URL input + trigger thresholds
+   - [ ] 🟡 Webhook signing config
+
+5. **Widget Theme**
+   - [ ] 🔴 Color tokens, title, icon, widget placement
+   - [ ] 🔴 Live preview reflects theme changes in real time
+
+6. **Deploy**
+   - [ ] 🔴 Embed snippet generator with one-click copy + "Copied" toast
+   - [ ] 🔴 Domain allowlist input
+   - [ ] 🟡 Environment tips (staging vs production)
+
+### Live Preview Panel (must-have)
+- [ ] 🔴 Streaming responses with typing indicator
+- [ ] 🔴 Citations UI with expand/collapse animation
+- [ ] 🔴 Confidence indicator (badge tied to SUPPORTED / PARTIAL / UNSUPPORTED) — framed as a trust signal, not a debug label
+- [ ] 🔴 **Delegation boundary indicator** — when a response would have triggered escalation or refusal under current delegation config, show why (low confidence / hard refusal / action requires confirmation)
+- [ ] 🔴 "Simulate context" toggle: URL / section / user plan inputs
+- [ ] 🔴 "Open trace" link after each preview response (links to Trace Viewer, M4)
+- [ ] 🟡 Refusal behavior visible in preview (persona boundary enforcement)
 
 **Acceptance**
-- Demo: create 3 assistants → configure → preview → copy embed snippet
+- Demo: create 3 assistants from templates → configure → preview with streaming citations → copy embed snippet
+- Theme changes reflect in Live Preview without page reload
+- All tab transitions are smooth; no layout flicker
 
 ---
 
 ## Milestone 2 — Context Contract (🔴) + Guided Onboarding (🟡)
-**Outcome:** Assistants become context-aware. Onboarding feels different from generic Q&A.
+**Outcome:** Assistants become context-aware. Onboarding feels meaningfully different from generic Q&A.
 
-### Context Contract (🔴 — Widget/App → API)
-- [ ] 🔴 Define Context Schema (versioned):
-  - page: url, title, route, section
-  - user: id/anon_id, plan, role
-  - session: id
+### Context Contract (🔴)
+- [ ] 🔴 Define versioned Context Schema:
+  - `page`: url, title, route, section
+  - `user`: id / anon_id, plan, role
+  - `session`: id
 - [ ] 🔴 Widget sends context payload with each message
 - [ ] 🔴 Store context snapshots in conversation metadata
+- [ ] 🔴 "Simulate context" in Studio Live Preview reads from this schema
 
-### Guided Onboarding (🟡 — simulated for demo, full engine later)
-- [ ] 🟡 Onboarding flow config: steps + success criteria + "next action"
+### Guided Onboarding (🟡)
+- [ ] 🟡 Onboarding flow config: steps + success criteria + "next action" per step
 - [ ] 🟡 Progress tracking table (per user/session per assistant)
 - [ ] 🟡 "Ask ≤2 clarifying questions" guardrail (system prompt v1)
 - [ ] 🟡 Context-aware retrieval boosts (rule-based v1)
 
 **Acceptance**
-- Demo shows assistant adapting to page context (not generic Q&A)
-- Onboarding assistant uses curated system prompt to simulate guided flow
+- Demo shows assistant adapting response to page context (not generic Q&A)
+- Onboarding assistant uses curated system prompt to simulate guided, step-by-step flow
 
 ---
 
 ## Milestone 3 — KnowledgeOps MVP (🔴)
 **Outcome:** Upload + manage knowledge with collections and retrieval scoping.
 
-### Upload Pipeline (Exists — Enhance)
-- [ ] 🔴 Knowledge > Sources page: connection status, last sync, docs count, chunks count, errors
-- [ ] 🔴 Knowledge > Ingestion Jobs page (CI-style): queued/running/failed/succeeded, duration, error logs
+### Sources Page
+- [ ] 🔴 Source cards: connection status, last sync, docs count, chunks count, last error
+- [ ] 🔴 "Sync now" action per source
+- [ ] 🔴 Error states are actionable: sync failed → show error detail + retry CTA
 
-### Collections & Scoping (New)
-- [ ] 🔴 Collections feature:
-  - Create Collection
-  - Add documents/pages to collection
-  - "Mount" collection to assistant(s)
-- [ ] 🔴 Retrieval enforcement: assistant can only retrieve chunks from mounted collections
-- [ ] 🔴 New schema tables: `collections`, `collection_documents`, `assistant_collections`
+### Ingestion Jobs Page (CI-style)
+- [ ] 🔴 Job list: status chip (queued / running / failed / succeeded), duration, doc/chunk counts
+- [ ] 🔴 Expandable error logs per job
+- [ ] 🔴 Status chips animate on state transitions
+
+### Collections (New)
+- [ ] 🔴 Collections page: create, list, edit collections
+- [ ] 🔴 Add documents/pages to a collection
+- [ ] 🔴 "Mount" collection to one or more assistants
+- [ ] 🔴 Retrieval enforcement: assistant only retrieves chunks from mounted collections
+- [ ] 🔴 New schema: `collections`, `collection_documents`, `assistant_collections`
 
 ### Connectors (Deferred to V3)
-- [ ] 🟢 Notion connector (org-level)
+- [ ] 🟢 Notion connector
 - [ ] 🟢 GitBook connector
 - [ ] 🟢 Intercom / Zendesk articles
 - [ ] 🟢 Confluence
 
 **Acceptance**
-- Demo: Upload docs → create collection → mount to assistant → preview answer with citations
-- Retrieval is scoped: assistant only sees docs in its mounted collections
+- Demo: Upload docs → create collection → mount to assistant → preview answer with scoped citations
+- Retrieval is enforced: assistant only sees docs in its mounted collections
 
 ---
 
 ## Milestone 4 — Quality Cockpit + Trace Viewer Lite (🔴)
-**Outcome:** "We can measure + debug AI quality" becomes visible.
+**Outcome:** "We can measure and debug AI quality — and prove the assistant behaved within its authorized boundaries" is visible and legible to operators.
 
-### Org Dashboard (Summary)
-- [ ] 🔴 KPIs: conversations (7d), supported%, handoff%, feedback trend
-- [ ] 🟡 Latency P50/P95, token usage (BYOK transparency)
+> All trace data already exists in the events table. This milestone is primarily frontend + API aggregation.
+> The Trace Viewer serves dual purpose: debugging tool for operators, and trust transparency surface. Design for both audiences.
 
-### Assistant Dashboard (Operator View)
-- [ ] 🔴 Supported/Partial/Unsupported distribution
-- [ ] 🔴 Top queries + low-confidence queries ("gaps")
+### Org Dashboard (Control Tower)
+- [ ] 🔴 Top KPI strip: conversations (7d), supported%, handoff%, feedback trend (👍/👎 ratio)
+- [ ] 🔴 Assistants overview table: name, template, status chip, 7d conversations, supported%, handoff%
+- [ ] 🔴 Needs Attention panel (right rail):
+  - Failed sync jobs
+  - Spike in UNSUPPORTED answers
+  - Negative feedback spike
+  - Stale sources (> configurable threshold)
+- [ ] 🔴 Recent activity feed: latest conversations, ingestion jobs, config changes
+- [ ] 🟡 Latency P50/P95 and token usage (BYOK transparency)
+
+### Assistant Quality View (Operator View)
+- [ ] 🔴 Supported / Partial / Unsupported distribution (chart)
+- [ ] 🔴 Feedback trend over time
+- [ ] 🔴 Handoff rate
+- [ ] 🔴 Top queries list
+- [ ] 🔴 Low-confidence queries — "gap list" for knowledge improvement
 - [ ] 🟡 Most cited sources
 
-### Trace Viewer Lite (per message)
-- [ ] 🔴 Timeline: rewrite → retrieval → rerank → generation → grading
-- [ ] 🔴 Show retrieved chunks + scores + chosen citations
-- [ ] 🟡 "Replay with debug mode" (optional)
-
-> **Note:** All trace data already exists in the events table. This is primarily a frontend + API aggregation effort.
+### Trace Viewer Lite (per message — Trust Transparency Layer)
+- [ ] 🔴 Timeline view: input + context snapshot → rewrite → retrieval → rerank → generation → grading
+- [ ] 🔴 Retrieved chunks with similarity scores + rerank order
+- [ ] 🔴 Final answer with grading label + confidence score
+- [ ] 🔴 **Trust signal panel** — shows not just what happened, but what the assistant was authorized to do:
+  - Delegation boundary applied (which config threshold was in effect)
+  - Whether the answer was autonomous or would have triggered escalation
+  - Guardrail events: PII scrubbed, injection blocked, persona boundary enforced
+- [ ] 🔴 Handoff / action events (if triggered) — including whether confirmation was required and whether it was given
+- [ ] 🔴 "Open trace" links from Live Preview (M1) and conversations list
+- [ ] 🟡 "Replay with debug mode" option
 
 **Acceptance**
-- Demo: ask a question → open trace → explain why answer is trusted/refused
+- Demo: ask a question in Studio Live Preview → open trace → explain exactly why the answer is trusted or refused, and what boundary was applied
+- Org dashboard loads with real metrics from seed data (M0)
+- Trace viewer is legible to a non-technical operator, not just a developer
 
 ---
 
-## Milestone 5 — Auth + Platform Security Baseline (🔴 for credibility)
-**Outcome:** Admin is secure + platform feels production-grade.
+## Milestone 5 — Auth + Platform Security Baseline (🔴)
+**Outcome:** Admin is secured. Platform feels production-grade and enterprise-credible.
 
 ### Admin Auth + RBAC
 - [ ] 🔴 Supabase Auth (email/password or magic link)
-- [ ] 🔴 Roles: owner/admin/viewer
-- [ ] 🟡 Audit log of admin actions
+- [ ] 🔴 Roles: owner / admin / viewer
+- [ ] 🟡 Audit log of admin actions (surfaced in Dashboard recent activity)
 
 ### API Hardening
 - [ ] 🔴 Assistant API keys (separate from BYOK model key)
-- [ ] 🔴 Rate limiting (per assistant + per IP) — throttler guard exists, needs enhancement
+- [ ] 🔴 Rate limiting per assistant + per IP (enhance existing throttler guard)
 - [ ] 🔴 Widget domain allowlist + CORS controls
 - [ ] 🟡 Webhook signing for n8n triggers
 
 ### BYOK Security
 - [ ] 🔴 Encrypt stored model keys at rest
-- [ ] 🔴 "Test key" UX + graceful failure states
+- [ ] 🔴 "Test key" UX with clear success/failure states + graceful error handling
 
 **Acceptance**
-- Admin requires login
-- Widget cannot spoof assistant/org
-- Basic rate limiting & domain restrictions are enforced
+- Admin requires login; role permissions enforced at route level
+- Widget cannot spoof assistant/org identity
+- Rate limiting and domain restrictions enforced
+- BYOK key entry has explicit test + feedback before saving
 
 ---
 
-## Milestone 6 — Agentic Rails + Demo Actions (🟡)
-**Outcome:** "Agentic" without building a full agent framework.
+## Milestone 6 — Integrations Surface + Agentic Rails (🟡)
+**Outcome:** Integrations is a first-class product surface, not a buried config tab. Agentic actions are safe by design.
 
-- [ ] 🟡 Action schema + allowlist per assistant
-- [ ] 🟡 Confirmation step for actions (v1 safety)
+> Previously: Agentic Rails (M6). Expanded to match Integrations nav item from UI/UX Vision.
+
+### Integrations Page (New First-Class Surface)
+- [ ] 🟡 Integrations list: installed + available connectors with status chips
+- [ ] 🟡 n8n: connection status, active workflows, last trigger timestamp
+- [ ] 🟡 Webhook log: recent triggers, payloads, failure states
+- [ ] 🟢 Connector marketplace placeholder (Notion, Slack, Zendesk — V3 roadmap)
+
+### Agentic Rails *(Trust Architecture: Consent & Override)*
+- [ ] 🟡 Action schema + per-assistant allowlist (set in Behavior tab delegation controls, M1)
+- [ ] 🟡 **Confirmation UX** — not just a boolean gate, but a legible consent surface:
+  - Show the user exactly what the assistant is about to do before execution (action type, affected resource, reversibility)
+  - Allow modify, not just approve/reject (e.g. edit the ticket title before it's created)
+  - Show confirmation result in conversation thread — user can see what was done and when
+- [ ] 🟡 **Override capability** — user can cancel or undo an action after confirmation within a grace period (where technically reversible)
 - [ ] 🟡 Demo actions:
-  - Support: Create ticket (n8n)
-  - Onboarding: Update onboarding checklist (DB)
-  - Docs: Generate code snippet (safe read-only)
-- [ ] 🟡 Action events integrated into trace viewer
+  - Support: Create ticket via n8n (confirmation required)
+  - Onboarding: Update onboarding checklist (confirmation required — DB write)
+  - Docs: Generate code snippet (no confirmation — safe read-only)
+- [ ] 🟡 Action events integrated into Trace Viewer trust signal panel (M4)
+
+**Acceptance**
+- Integrations is navigable from top-level nav with real connection status
+- Confirmation UI shows what the assistant will do before execution, with modify option
+- User can see a record of every action taken on their behalf in the conversation thread
+- Action events are visible in the trace timeline trust signal panel
 
 ---
 
+## Milestone 6.5 — Trust Architecture: Unified Control Layer (🟡)
+**Outcome:** The scattered trust signals across the product are unified into a coherent system. RelayOS becomes the control plane for AI behavior in B2B workflows, not just a chat widget platform.
+
+> This milestone doesn't build new infrastructure — it unifies what was built in M1, M4, and M6 into an intentional, legible system. It is primarily design + surface work.
+
+### Operator Trust Dashboard (new section within Quality Cockpit)
+- [ ] 🟡 Aggregate autonomous action log — across all conversations, not just per-message in trace: what did each assistant decide on its own, and what did it escalate?
+- [ ] 🟡 Delegation boundary effectiveness metrics:
+  - % of conversations where confidence threshold triggered escalation
+  - % of action requests that required confirmation vs. executed autonomously
+  - Refusal rate by topic / persona boundary
+- [ ] 🟡 "Drift alerts" — notify operator when assistant behavior appears to be moving outside configured delegation boundaries (e.g. sudden drop in escalation rate, spike in low-confidence autonomous answers)
+
+### End-User Trust Signals (widget-side)
+- [ ] 🟡 Legible confidence framing in the widget — replace raw SUPPORTED/PARTIAL/UNSUPPORTED labels with user-facing language ("I'm confident in this answer" / "This is my best understanding — verify with your team")
+- [ ] 🟡 Source transparency: citations are already shown; make them scannable and meaningful to non-technical users (document name + section, not just a URL)
+- [ ] 🟡 Action receipt in conversation thread — after any confirmed action, show a compact, permanent record: "Ticket #1234 created · Feb 25 · You approved this"
+
+### Delegation Control Surface Consolidation (Studio)
+- [ ] 🟡 Audit the Studio tabs (M1) and ensure all delegation-related config lives in Behavior tab — no trust-relevant settings buried in Handoff, Persona, or elsewhere
+- [ ] 🟡 Delegation config summary visible on Assistant Studio header — operator sees the autonomy level at a glance before making changes
+
+**Acceptance**
+- An operator can answer "what did this assistant decide on its own last week?" without opening individual traces
+- An end-user can understand what the assistant did on their behalf and why, without any technical knowledge
+- All delegation configuration for an assistant is findable in one place in Studio
+
+---
 ## Milestone 7 — Demo World (🔴 to sell + interview)
-**Outcome:** A public "Acme SaaS" multi-context demo that tells the story fast.
+**Outcome:** A public "Acme SaaS" multi-context demo that tells the full product story in under 10 minutes.
 
-- [ ] 🔴 Public demo site + 3 assistants (distinct styling + behavior)
-- [ ] 🔴 Seed docs realistic enough to produce great answers
-- [ ] 🔴 Scripted demo path (5 questions) showing:
-  - citations + confidence
-  - context adaptation
-  - trace viewer
-  - handoff action
-- [ ] 🟡 "Demo mode" toggle that highlights key features
+- [ ] 🔴 Public demo site with 3 distinct assistants (different styling, behavior, persona)
+- [ ] 🔴 Seed docs realistic enough to produce high-quality, citation-rich answers
+- [ ] 🔴 Scripted demo path — 7 steps matching the UI/UX Vision "Best Demo" flow, extended with trust layer:
+  1. Create 3 assistants from templates → note the Autonomy Level chip on each
+  2. Connect knowledge source + sync
+  3. Mount collections to assistants
+  4. Ask Support question → citations + confidence badge + delegation boundary indicator
+  5. Ask Onboarding question with context → guided step-by-step response
+  6. Open Trace Viewer → show retrieval pipeline + grading + trust signal panel (what was the assistant authorized to do?)
+  7. Trigger handoff action → confirmation UX → action receipt in thread → workflow event in trace
+- [ ] 🟡 "Demo mode" toggle that highlights key features with contextual callouts
+
+**Acceptance**
+- A new person can complete the 7-step demo path without assistance
+- Every step produces a visually impressive, explainable output
 
 ---
 
-## Recommended Build Order (Minimum Impressive Demo)
+## Milestone 8 — Setup Wizard (🟡)
+**Outcome:** First-run experience that accelerates time-to-value for new per-client deployments.
+
+> Previously absent from roadmap. Specified in UI/UX Vision as "huge perceived value."
+
+- [ ] 🟡 Step 1: Add BYOK model key → test connection → confirm
+- [ ] 🟡 Step 2: Connect knowledge source (upload docs or connect Notion — Notion deferred to V3, upload available now)
+- [ ] 🟡 Step 3: Create assistants from templates (pre-fills persona + behavior)
+- [ ] 🟡 Step 4: Deploy widget → generates embed snippet
+- [ ] 🟡 Step 5: Verify with Live Preview — ask a question, see a citation
+- [ ] 🟢 Progress persistence: wizard state saved if user exits mid-flow
+
+**Acceptance**
+- New org can reach a working, deployed assistant in under 15 minutes
+- Each wizard step has a clear success state before advancing
+
+---
+
+## Milestone 9 — White-label & Branding (🟢)
+**Outcome:** RelayOS can be deployed as a branded product for per-client B2B deployments, with no code forks.
+
+> Previously scattered as notes. Promoted to explicit milestone per UI/UX Vision.
+
+- [ ] 🟢 Config-driven branding: logo, product name, primary color
+- [ ] 🟢 Widget theme presets (light / dark / custom)
+- [ ] 🟢 Feature flags: hide/show modules per deployment (e.g. hide Quality Cockpit for limited deployments)
+- [ ] 🟢 White-label admin: remove RelayOS branding from admin UI when configured
+- [ ] 🟢 Per-org branding config stored in org settings (not code)
+
+**Acceptance**
+- A new deployment can be fully rebranded via config with no code changes
+- Feature flags correctly hide/show nav items and modules
+
+---
+
+## Recommended Build Order
 
 ```
 M0 (nav + primitives + seed)
-  ├── M1 (Assistant Studio — the wow screen)
+  ├── M1 (Assistant Studio — wow screen + delegation control surface)
   │     └── M3 (KnowledgeOps — upload + collections)
-  └── M4 (Quality Cockpit — trace viewer from existing events)
-         └── M7 (Demo World — public demo site)
+  │           └── M4 (Quality Cockpit + Trace Viewer — trust transparency)
+  │                 └── M6 (Integrations + Agentic Rails — consent/override UX)
+  │                       └── M6.5 (Trust Architecture — unify the layer)
+  │                             └── M7 (Demo World — full story)
+  └── M2 (Context Contract — after Studio works)
 
-M2 (Context Contract — after studio works)
-M5 (Auth — after demo is solid)
-M6 (Agentic Rails — stretch)
+M5 (Auth — after demo is solid, before any external sharing)
+M8 (Setup Wizard — after core product is stable)
+M9 (White-label — per-client deployment phase)
 ```
 
 ---
 
 ## Notes / Guardrails
-- Templates = presets (not hard limits)
-- Avoid client-specific forks; use branding config + feature flags
-- Keep core stable; ship in slices that always improve demo quality
+- Templates = presets, not hard limits. Always configurable.
+- Never fork code for clients — use branding config + feature flags (M9)
+- Keep core stable; every milestone must independently improve demo quality
 - Connectors (Notion, GitBook, etc.) deferred to V3 — upload-only for V2 demo
+- Micro-interactions (animations, toasts, skeleton loaders) are first-class acceptance criteria in M0 and M1, not afterthoughts
+- The 7-step demo path (M7) is the forcing function for the whole roadmap — if a feature doesn't contribute to that path, it can wait
+- **Trust Architecture principle:** every assistant deployment is implicitly a delegation decision. RelayOS makes those decisions explicit, configurable, and auditable. Trust signals (confidence, citations, action receipts, trace) are not debug features — they are product features. Design them for operators and end-users, not developers.
 
-*Last updated: February 16, 2026*
+*Last updated: February 25, 2026*
