@@ -87,6 +87,35 @@ Each assistant has its own persona (tone, boundaries, voice), knowledge base, we
 
 ## Getting Started
 
+### Run the Demo in 5 Steps
+
+```bash
+# 1. Clone and install
+git clone <repo-url> && cd relayos && npm install
+
+# 2. Configure environment
+cp .env.example .env.local
+# Edit .env.local: add SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, LLM API key
+
+# 3. Run database migrations (in Supabase SQL Editor)
+# See "Database Setup" section below
+
+# 4. Seed demo data (creates Acme SaaS org + 3 assistants + sample docs)
+npm run seed
+
+# 5. Start the platform
+npm run dev
+# → Admin: http://localhost:3000
+# → API: http://localhost:3001
+```
+
+The seed script creates:
+- **Acme Support** (reactive) — FAQ and billing questions
+- **Acme Developer Docs** (reference) — API auth, webhooks, rate limits
+- **Acme Onboarding** (guided) — Step-by-step setup guide
+
+Copy any assistant ID from the seed output and paste it into the Admin Dashboard.
+
 ### Prerequisites
 
 - Node.js 20+

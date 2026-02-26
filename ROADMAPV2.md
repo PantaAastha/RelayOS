@@ -62,21 +62,21 @@
 **Outcome:** RelayOS feels like a product, not a set of features. Every screen has a place.
 
 ### Navigation & Information Architecture
-- [ ] 🔴 Restructure sidebar nav: **Dashboard · Assistants · Knowledge · Quality · Integrations · Settings**
-- [ ] 🔴 "Single-org mode" (default) + optional org switcher (feature flag for multi-tenant deployments)
-- [ ] 🔴 Consistent UI primitive library: cards, tables, status chips, empty states, skeleton loaders
-- [ ] 🔴 Empty states must always include a CTA — no dead ends anywhere in the product
+- [x] 🔴 Restructure sidebar nav: **Dashboard · Assistants · Knowledge · Quality · Integrations · Settings**
+- [x] 🔴 "Single-org mode" (default) + optional org switcher (feature flag for multi-tenant deployments)
+- [x] 🔴 Consistent UI primitive library: cards, tables, status chips, empty states, skeleton loaders
+- [x] 🔴 Empty states must always include a CTA — no dead ends anywhere in the product
 
 ### Design System Baseline (feeds all subsequent milestones)
-- [ ] 🔴 Status chip component with animated state transitions (Draft → Live, queued → running → complete)
-- [ ] 🔴 Skeleton loading for all data-fetching surfaces
-- [ ] 🔴 Toast notification system ("Copied", "Saved", "Sync started")
-- [ ] 🟡 Optimistic updates where safe (config saves, feedback reactions)
+- [x] 🔴 Status chip component with animated state transitions (Draft → Live, queued → running → complete)
+- [x] 🔴 Skeleton loading for all data-fetching surfaces
+- [x] 🔴 Toast notification system ("Copied", "Saved", "Sync started")
+- [x] 🟡 Optimistic updates where safe (config saves, feedback reactions)
 
 ### Demo Pack
-- [ ] 🔴 Seed script: creates org + 3 assistants + sample docs + sample conversations
-- [ ] 🔴 "Run demo in 5 steps" README section
-- [ ] 🔴 Update `docker-compose` for clean one-command startup
+- [x] 🔴 Seed script: creates org + 3 assistants + sample docs + sample conversations
+- [x] 🔴 "Run demo in 5 steps" README section
+- [x] 🔴 Update `docker-compose` for clean one-command startup
 
 **Acceptance**
 - Admin loads with a coherent, navigable product spine
@@ -174,6 +174,8 @@
 
 ## Milestone 3 — KnowledgeOps MVP (🔴)
 **Outcome:** Upload + manage knowledge with collections and retrieval scoping.
+
+> **Note (from M0):** The current `/knowledge` page is a bridge placeholder that does not yet display seeded or uploaded documents. This milestone should replace it with the full Sources, Ingestion Jobs, and Collections UI, including proper API integration for listing and managing documents.
 
 ### Sources Page
 - [ ] 🔴 Source cards: connection status, last sync, docs count, chunks count, last error

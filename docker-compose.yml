@@ -1,5 +1,6 @@
 # RelayOS Docker Compose
-# Minimal configuration - uses client-provided credentials via .env
+# One-command startup for demos: docker-compose up --build
+# For full self-hosted (bundled DB + n8n): docker-compose -f docker-compose.yml -f docker-compose.full.yml up
 
 services:
   api:
@@ -35,10 +36,13 @@ services:
         required: false
     environment:
       - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 networks:
   default:
     name: relayos-network
+
