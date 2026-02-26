@@ -1,8 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useToast } from '@/components/Toast';
+import PersonaTab from '@/components/studio/PersonaTab';
+import BehaviorTab from '@/components/studio/BehaviorTab';
+import KnowledgeTab from '@/components/studio/KnowledgeTab';
+import HandoffTab, { HandoffConfig, defaultHandoffConfig } from '@/components/studio/HandoffTab';
+import WidgetThemeTab, { WidgetThemeConfig, defaultWidgetTheme } from '@/components/studio/WidgetThemeTab';
+import DeployTab from '@/components/studio/DeployTab';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -14,73 +21,86 @@ interface Persona {
     customInstructions: string;
 }
 
-interface StarterQuestion {
-    label: string;
-    message: string;
-}
+interface StarterQuestion { label: string; message: string; }
 
-interface AssistantDetail {
+interface AssistantData {
     id: string;
     name: string;
     slug: string;
-    persona: Persona;
     assistant_type: 'reactive' | 'guided' | 'reference';
+    persona: Persona;
     welcome_message: string;
     starter_questions: StarterQuestion[];
+    config: Record<string, any>;
 }
 
-const defaultPersona: Persona = {
-    name: '',
-    tone: '',
-    voice: '',
-    boundaries: '',
-    customInstructions: '',
+const defaultPersona: Persona = { name: '', tone: '', voice: '', boundaries: '', customInstructions: '' };
+
+const TYPE_META: Record<string, { label: string; chipClass: string }> = {
+    reactive: { label: 'Support', chipClass: 'chip-support' },
+    reference: { label: 'Docs', chipClass: 'chip-docs' },
+    guided: { label: 'Onboarding', chipClass: 'chip-onboard' },
 };
 
-export default function AssistantDetailPage() {
+const TABS = [
+    { id: 'persona', label: 'Persona', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
+    { id: 'behavior', label: 'Behavior', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg> },
+    { id: 'knowledge', label: 'Knowledge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></svg> },
+    { id: 'handoff', label: 'Handoff', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><line x1="6" y1="3" x2="6" y2="15" /><circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><path d="M18 9a9 9 0 01-9 9" /></svg> },
+    { id: 'widget', label: 'Widget', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="13.5" cy="6.5" r="0.5" /><circle cx="17.5" cy="10.5" r="0.5" /><circle cx="8.5" cy="7.5" r="0.5" /><circle cx="6.5" cy="12" r="0.5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></svg> },
+    { id: 'deploy', label: 'Deploy', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z" /><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></svg> },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
+export default function StudioPage() {
     const params = useParams();
-    const router = useRouter();
     const assistantId = params.id as string;
+    const { addToast } = useToast();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [assistant, setAssistant] = useState<AssistantDetail | null>(null);
-    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [assistant, setAssistant] = useState<AssistantData | null>(null);
+    const [tab, setTab] = useState<TabId>('persona');
 
     // Form state
     const [persona, setPersona] = useState<Persona>(defaultPersona);
     const [assistantType, setAssistantType] = useState<'reactive' | 'guided' | 'reference'>('reactive');
     const [welcomeMessage, setWelcomeMessage] = useState('');
     const [starterQuestions, setStarterQuestions] = useState<StarterQuestion[]>([]);
+    const [delegationConfig, setDelegationConfig] = useState({ confidenceThreshold: 65, readOnlyActionsAllowed: true, requireConfirmationFor: ['ticket_creation', 'data_mutation'], hardRefusalTopics: '' });
+    const [handoffConfig, setHandoffConfig] = useState<HandoffConfig>(defaultHandoffConfig);
+    const [widgetTheme, setWidgetTheme] = useState<WidgetThemeConfig>(defaultWidgetTheme);
+    const [domainAllowlist, setDomainAllowlist] = useState('');
+    const [autonomy, setAutonomy] = useState('balanced');
+    const [threshold, setThreshold] = useState(65);
+    const [lowConf, setLowConf] = useState('escalate');
 
-    useEffect(() => {
-        if (assistantId) {
-            fetchAssistant();
-        }
-    }, [assistantId]);
-
-    const fetchAssistant = async () => {
+    const fetchAssistant = useCallback(async () => {
         try {
             const res = await fetch(`${API_URL}/assistants/${assistantId}`);
-            if (!res.ok) throw new Error('Assistant not found');
-            const data = await res.json();
+            if (!res.ok) throw new Error('Not found');
+            const data: AssistantData = await res.json();
             setAssistant(data);
             setPersona(data.persona || defaultPersona);
             setAssistantType(data.assistant_type || 'reactive');
             setWelcomeMessage(data.welcome_message || '');
             setStarterQuestions(data.starter_questions || []);
-        } catch (e) {
-            console.error('Failed to load assistant:', e);
-            showToast('error', 'Failed to load assistant');
+            if (data.config) {
+                setWidgetTheme({
+                    primaryColor: data.config.primaryColor || defaultWidgetTheme.primaryColor,
+                    widgetTitle: data.config.widgetTitle || defaultWidgetTheme.widgetTitle,
+                    placement: defaultWidgetTheme.placement,
+                });
+            }
+        } catch {
+            addToast({ title: 'Error', message: 'Failed to load assistant', variant: 'error' });
         } finally {
             setLoading(false);
         }
-    };
+    }, [assistantId, addToast]);
 
-    const showToast = (type: 'success' | 'error', message: string) => {
-        setToast({ type, message });
-        setTimeout(() => setToast(null), 3000);
-    };
+    useEffect(() => { if (assistantId) fetchAssistant(); }, [assistantId, fetchAssistant]);
 
     const handleSave = async () => {
         setSaving(true);
@@ -92,231 +112,173 @@ export default function AssistantDetailPage() {
                     persona,
                     assistant_type: assistantType,
                     welcome_message: welcomeMessage,
-                    starter_questions: starterQuestions.filter(q => q.label.trim()),
+                    starter_questions: starterQuestions.filter((q) => q.label.trim()),
+                    config: { ...assistant?.config, widgetTitle: widgetTheme.widgetTitle, primaryColor: widgetTheme.primaryColor },
                 }),
             });
-            if (!res.ok) throw new Error('Failed to save');
-            showToast('success', 'Persona saved successfully');
-        } catch (e) {
-            console.error('Save failed:', e);
-            showToast('error', 'Failed to save changes');
+            if (!res.ok) throw new Error('Failed');
+            addToast({ title: 'Saved', message: 'Changes saved successfully', variant: 'success' });
+        } catch {
+            addToast({ title: 'Error', message: 'Failed to save', variant: 'error' });
         } finally {
             setSaving(false);
         }
     };
 
-    const addStarterQuestion = () => {
-        setStarterQuestions([...starterQuestions, { label: '', message: '' }]);
-    };
+    if (loading) {
+        return (
+            <div className="studio-container">
+                <div className="loading">Loading Studio...</div>
+            </div>
+        );
+    }
 
-    const removeStarterQuestion = (index: number) => {
-        setStarterQuestions(starterQuestions.filter((_, i) => i !== index));
-    };
+    if (!assistant) {
+        return (
+            <div className="empty-state" style={{ height: '100vh' }}>
+                <h3>Assistant not found</h3>
+                <Link href="/assistants" className="btn btn-primary" style={{ marginTop: '12px' }}>Back to Assistants</Link>
+            </div>
+        );
+    }
 
-    const updateStarterQuestion = (index: number, field: 'label' | 'message', value: string) => {
-        const updated = [...starterQuestions];
-        updated[index] = { ...updated[index], [field]: value };
-        setStarterQuestions(updated);
-    };
+    const meta = TYPE_META[assistantType] || TYPE_META.reactive;
 
-    if (loading) return <div className="page-container"><div className="loading">Loading...</div></div>;
-    if (!assistant) return <div className="page-container"><div className="empty-state"><h3>Assistant not found</h3></div></div>;
-
-    const inputStyle: React.CSSProperties = {
-        width: '100%', padding: '10px 12px', borderRadius: '8px',
-        border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
-        color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'inherit',
-    };
-
-    const textareaStyle: React.CSSProperties = {
-        ...inputStyle, minHeight: '80px', resize: 'vertical' as const,
-    };
-
-    const labelStyle: React.CSSProperties = {
-        display: 'block', fontSize: '13px', fontWeight: 600,
-        marginBottom: '6px', color: 'var(--text-secondary)',
-    };
-
-    const sectionStyle: React.CSSProperties = {
-        background: 'var(--bg-primary)', borderRadius: '12px',
-        border: '1px solid var(--border-color)', padding: '24px', marginBottom: '20px',
+    const renderTab = () => {
+        switch (tab) {
+            case 'persona': return <PersonaTab persona={persona} welcomeMessage={welcomeMessage} starterQuestions={starterQuestions} onPersonaChange={setPersona} onWelcomeMessageChange={setWelcomeMessage} onStarterQuestionsChange={setStarterQuestions} />;
+            case 'behavior': return <BehaviorTab assistantType={assistantType} onAssistantTypeChange={setAssistantType} delegationConfig={delegationConfig} onDelegationConfigChange={setDelegationConfig} />;
+            case 'knowledge': return <KnowledgeTab />;
+            case 'handoff': return <HandoffTab config={handoffConfig} onChange={setHandoffConfig} />;
+            case 'widget': return <WidgetThemeTab config={widgetTheme} onChange={setWidgetTheme} />;
+            case 'deploy': return <DeployTab assistantId={assistantId} apiUrl={API_URL} domainAllowlist={domainAllowlist} onDomainAllowlistChange={setDomainAllowlist} />;
+        }
     };
 
     return (
-        <div className="page-container">
-            {/* Toast */}
-            {toast && (
-                <div style={{
-                    position: 'fixed', top: '20px', right: '20px', zIndex: 1000,
-                    padding: '12px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
-                    background: toast.type === 'success' ? 'var(--success)' : 'var(--error)',
-                    color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                }}>
-                    {toast.message}
-                </div>
-            )}
-
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
-                    <Link href="/assistants" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none' }}>
-                        ← Back to Assistants
+        <div className="studio-container">
+            {/* Top bar */}
+            <div className="topbar">
+                <div className="topbar-l">
+                    <Link href="/assistants" className="back-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                            <line x1="19" y1="12" x2="5" y2="12" />
+                            <polyline points="12 19 5 12 12 5" />
+                        </svg>
+                        Assistants
                     </Link>
-                    <h1 className="page-title" style={{ marginTop: '8px' }}>{assistant.name}</h1>
-                    <p className="page-description">Configure AI persona and widget behavior</p>
+                    <div className="topbar-sep" />
+                    <span className="topbar-name">{assistant.name}</span>
+                    <span className={`chip ${meta.chipClass}`}>
+                        <span className="chip-dot" />
+                        {meta.label}
+                    </span>
+                    <span className="chip chip-live">
+                        <span className="chip-dot" />
+                        Live
+                    </span>
                 </div>
-                <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-            </div>
-
-            {/* Persona Section */}
-            <div style={sectionStyle}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>
-                    🤖 AI Persona
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                        <label style={labelStyle}>Persona Name</label>
-                        <input
-                            type="text" style={inputStyle} placeholder="e.g. Luna, Support Bot"
-                            value={persona.name} onChange={e => setPersona({ ...persona, name: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label style={labelStyle}>Tone</label>
-                        <input
-                            type="text" style={inputStyle} placeholder="e.g. friendly, professional, casual"
-                            value={persona.tone} onChange={e => setPersona({ ...persona, tone: e.target.value })}
-                        />
-                    </div>
-                </div>
-                <div style={{ marginTop: '16px' }}>
-                    <label style={labelStyle}>Voice / Style</label>
-                    <textarea
-                        style={textareaStyle}
-                        placeholder="Describe how this assistant should communicate. e.g. 'Speaks like a knowledgeable friend. Uses short sentences. Avoids corporate jargon.'"
-                        value={persona.voice}
-                        onChange={e => setPersona({ ...persona, voice: e.target.value })}
-                    />
-                </div>
-                <div style={{ marginTop: '16px' }}>
-                    <label style={labelStyle}>Boundaries</label>
-                    <textarea
-                        style={textareaStyle}
-                        placeholder="Topics the assistant should avoid or redirect. e.g. 'Never discuss competitor products. Don't provide legal or medical advice.'"
-                        value={persona.boundaries}
-                        onChange={e => setPersona({ ...persona, boundaries: e.target.value })}
-                    />
-                </div>
-                <div style={{ marginTop: '16px' }}>
-                    <label style={labelStyle}>Custom Instructions</label>
-                    <textarea
-                        style={textareaStyle}
-                        placeholder="Any additional instructions for the AI. e.g. 'Always end responses with an offer to help further.'"
-                        value={persona.customInstructions}
-                        onChange={e => setPersona({ ...persona, customInstructions: e.target.value })}
-                    />
+                <div className="topbar-r">
+                    <button className="btn btn-ghost btn-sm">Discard</button>
+                    <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
             </div>
 
-            {/* Assistant Type Section */}
-            <div style={sectionStyle}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>
-                    ⚙️ Assistant Type
-                </h3>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    {([
-                        { value: 'reactive', label: 'Reactive', desc: 'Waits for questions, provides cited answers' },
-                        { value: 'guided', label: 'Guided', desc: 'Proactively guides users step-by-step' },
-                        { value: 'reference', label: 'Reference', desc: 'Technical answers with code examples' },
-                    ] as const).map(opt => (
-                        <button
-                            key={opt.value}
-                            onClick={() => setAssistantType(opt.value)}
-                            style={{
-                                flex: 1, padding: '16px', borderRadius: '10px', cursor: 'pointer',
-                                border: assistantType === opt.value
-                                    ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                background: assistantType === opt.value
-                                    ? 'rgba(99, 102, 241, 0.08)' : 'var(--bg-secondary)',
-                                textAlign: 'left', fontFamily: 'inherit',
-                                color: 'var(--text-primary)',
-                            }}
-                        >
-                            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{opt.label}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{opt.desc}</div>
-                        </button>
-                    ))}
-                </div>
-                {assistantType === 'guided' && (
-                    <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        Note: Guided mode currently affects system prompt tone only. Full step-tracking is planned for Phase 3.
-                    </p>
-                )}
-            </div>
-
-            {/* Welcome & Starters Section */}
-            <div style={sectionStyle}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>
-                    💬 Widget Welcome
-                </h3>
-                <div>
-                    <label style={labelStyle}>Welcome Message</label>
-                    <input
-                        type="text" style={inputStyle}
-                        placeholder="Hi there! How can I help you today?"
-                        value={welcomeMessage}
-                        onChange={e => setWelcomeMessage(e.target.value)}
-                    />
-                </div>
-
-                <div style={{ marginTop: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <label style={{ ...labelStyle, marginBottom: 0 }}>Starter Questions</label>
-                        <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={addStarterQuestion}
-                            style={{ fontSize: '12px', padding: '4px 12px' }}
-                        >
-                            + Add
-                        </button>
+            {/* Studio body */}
+            <div className="studio-body">
+                {/* Config panel (left) */}
+                <div className="studio-left">
+                    <div className="studio-tabs">
+                        {TABS.map(({ id, label, icon }) => (
+                            <button
+                                key={id}
+                                className={`studio-tab${tab === id ? ' studio-tab--active' : ''}`}
+                                onClick={() => setTab(id)}
+                            >
+                                {icon}
+                                {label}
+                            </button>
+                        ))}
                     </div>
-                    {starterQuestions.length === 0 ? (
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            No starter questions yet. Add some to help users get started.
-                        </p>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {starterQuestions.map((q, i) => (
-                                <div key={i} style={{
-                                    display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'start',
-                                }}>
-                                    <input
-                                        type="text" style={inputStyle}
-                                        placeholder="Chip label (e.g. 'Pricing info')"
-                                        value={q.label}
-                                        onChange={e => updateStarterQuestion(i, 'label', e.target.value)}
-                                    />
-                                    <input
-                                        type="text" style={inputStyle}
-                                        placeholder="Message sent on click"
-                                        value={q.message}
-                                        onChange={e => updateStarterQuestion(i, 'message', e.target.value)}
-                                    />
-                                    <button
-                                        onClick={() => removeStarterQuestion(i)}
-                                        style={{
-                                            background: 'none', border: 'none', cursor: 'pointer',
-                                            color: 'var(--error)', padding: '10px 8px', fontSize: '16px',
-                                        }}
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                            ))}
+                    <div className="studio-tab-content">
+                        {renderTab()}
+                    </div>
+                </div>
+
+                {/* Preview panel (right) */}
+                <div className="studio-right">
+                    <div className="preview-header">
+                        <div className="preview-label">
+                            <div className="live-dot" />
+                            Live Preview
                         </div>
-                    )}
+                        <div style={{ display: 'flex', gap: '7px', alignItems: 'center' }}>
+                            <div className="ctx-badge">page: /getting-started</div>
+                            <button className="btn btn-ghost btn-sm">Context</button>
+                        </div>
+                    </div>
+
+                    <div className="preview-body">
+                        {/* Welcome */}
+                        <div className="preview-welcome">
+                            <div className="preview-welcome-title">{persona.name || assistant.name}</div>
+                            <div className="preview-welcome-msg">{welcomeMessage || 'Hi there! How can I help you today?'}</div>
+                            <div className="starter-chips">
+                                {starterQuestions.filter(q => q.label.trim()).map((q, i) => (
+                                    <div key={i} className="starter-chip">{q.label}</div>
+                                ))}
+                                {starterQuestions.filter(q => q.label.trim()).length === 0 && (
+                                    <div className="starter-chip" style={{ opacity: 0.5 }}>Add starter questions in Persona tab</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Sample user message */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <div className="msg-user">How do I get started?</div>
+                        </div>
+
+                        {/* Sample assistant response */}
+                        <div className="msg-assistant">
+                            <div className="msg-avatar">{(persona.name || assistant.name || 'A')[0]}</div>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <div className="msg-bubble">
+                                    I&apos;d be happy to help you get started! Here&apos;s what you need to do...
+                                    <div>
+                                        <div className="confidence-badge">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                            Supported · 94%
+                                        </div>
+                                    </div>
+                                </div>
+                                <button className="trace-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
+                                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
+                                    Open trace
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Input */}
+                    <div className="preview-input">
+                        <div className="preview-input-wrap">
+                            <input className="preview-input-field" placeholder="Ask a question to preview…" />
+                            <button className="send-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
