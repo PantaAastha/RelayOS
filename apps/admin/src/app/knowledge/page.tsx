@@ -19,9 +19,19 @@ export default function KnowledgePage() {
     const [loading, setLoading] = useState(true);
     const [assistantId, setAssistantId] = useState('');
 
+    // Auto-detect assistantId from first assistant (replaces localStorage approach)
     useEffect(() => {
-        const saved = localStorage.getItem('relayos_assistant_id');
-        if (saved) setAssistantId(saved);
+        (async () => {
+            try {
+                const res = await fetch(`${API_URL}/assistants`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        setAssistantId(data[0].id);
+                    }
+                }
+            } catch { /* ignore */ }
+        })();
     }, []);
 
     const fetchDocuments = useCallback(async () => {
@@ -46,9 +56,9 @@ export default function KnowledgePage() {
         fetchDocuments();
     }, [fetchDocuments]);
 
-    if (!assistantId) {
+    if (!assistantId && !loading) {
         return (
-            <div>
+            <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Knowledge</h1>
                     <p className="page-description">Manage your knowledge sources, ingestion jobs, and collections.</p>
@@ -58,15 +68,15 @@ export default function KnowledgePage() {
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                     </svg>
-                    <h3>No assistant connected</h3>
-                    <p>Connect an assistant from the <Link href="/">Dashboard</Link> to manage knowledge.</p>
+                    <h3>No assistant found</h3>
+                    <p>Create an assistant from the <Link href="/assistants">Assistants</Link> page first.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div>
+        <div className="content-area">
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                     <h1 className="page-title">Knowledge</h1>
@@ -112,7 +122,7 @@ export default function KnowledgePage() {
                                     </td>
                                     <td>{doc.doc_type || '—'}</td>
                                     <td>{doc.chunk_count ?? '—'}</td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                                    <td style={{ color: 'var(--t3)', fontSize: '12px' }}>
                                         {new Date(doc.created_at).toLocaleDateString()}
                                     </td>
                                 </tr>

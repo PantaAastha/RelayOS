@@ -18,11 +18,19 @@ export default function ConversationsPage() {
     const [loading, setLoading] = useState(true);
     const [assistantId, setAssistantId] = useState('');
 
+    // Auto-detect assistantId from first assistant
     useEffect(() => {
-        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
-        if (savedAssistantId) {
-            setAssistantId(savedAssistantId);
-        }
+        (async () => {
+            try {
+                const res = await fetch(`${API_URL}/assistants`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        setAssistantId(data[0].id);
+                    }
+                }
+            } catch { /* ignore */ }
+        })();
     }, []);
 
     const fetchConversations = useCallback(async () => {
@@ -67,24 +75,21 @@ export default function ConversationsPage() {
         }
     };
 
-    if (!assistantId) {
+    if (!assistantId && !loading) {
         return (
-            <div>
+            <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Conversations</h1>
                 </div>
                 <div className="empty-state">
-                    <p>Please set your assistant ID on the dashboard first.</p>
-                    <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
-                        Go to Dashboard
-                    </Link>
+                    <p>No assistant found. Create one from the <Link href="/assistants">Assistants</Link> page.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div>
+        <div className="content-area">
             <div className="page-header">
                 <h1 className="page-title">Conversations</h1>
                 <p className="page-description">View chat transcripts and user interactions</p>

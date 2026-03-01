@@ -86,6 +86,9 @@ export default function AssistantsPage() {
     const [newType, setNewType] = useState<'reactive' | 'guided' | 'reference'>('reactive');
     const [submitting, setSubmitting] = useState(false);
 
+    // Default organization (single-org mode)
+    const [orgId, setOrgId] = useState<string>('');
+
     // Delete modal
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -96,12 +99,42 @@ export default function AssistantsPage() {
             if (!res.ok) throw new Error('Failed');
             const data = await res.json();
             setAssistants(data || []);
+            // Derive orgId from the first assistant if available
+            if (data?.length > 0 && data[0].organization_id) {
+                setOrgId(data[0].organization_id);
+            }
         } catch {
             addToast({ title: 'Error', message: 'Failed to load assistants', variant: 'error' });
         } finally {
             setLoading(false);
         }
     }, [addToast]);
+
+    // Fetch or auto-create default org (single-org mode — limited to one)
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`${API_URL}/organizations`);
+                if (res.ok) {
+                    const orgs = await res.json();
+                    if (Array.isArray(orgs) && orgs.length > 0) {
+                        setOrgId(orgs[0].id);
+                    } else {
+                        // No org exists — auto-create a default one
+                        const createRes = await fetch(`${API_URL}/organizations`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: 'My Organization', slug: 'default' }),
+                        });
+                        if (createRes.ok) {
+                            const newOrg = await createRes.json();
+                            setOrgId(newOrg.id);
+                        }
+                    }
+                }
+            } catch { /* ignore */ }
+        })();
+    }, []);
 
     useEffect(() => { fetchAssistants(); }, []);
 
@@ -110,12 +143,16 @@ export default function AssistantsPage() {
             addToast({ title: 'Required', message: 'Name and slug are required', variant: 'error' });
             return;
         }
+        if (!orgId) {
+            addToast({ title: 'Error', message: 'No organization found. Create one first.', variant: 'error' });
+            return;
+        }
         setSubmitting(true);
         try {
             const res = await fetch(`${API_URL}/assistants`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName, slug: newSlug, assistant_type: newType }),
+                body: JSON.stringify({ name: newName, slug: newSlug, assistant_type: newType, organizationId: orgId }),
             });
             const data = await res.json();
             if (res.ok) {

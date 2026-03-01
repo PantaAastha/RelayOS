@@ -90,49 +90,52 @@
 **Outcome:** Create → configure → test → deploy assistants from one place. The "wow" screen.
 
 ### Assistants List
-- [ ] 🔴 Assistants list page (cards or table):
+- [x] 🔴 Assistants list page (cards or table):
   - Name + template type chip (Support / Docs / Onboarding)
   - Status chip (Draft / Live / Needs Attention)
   - Quick stats: 7d conversations, supported%, handoff%
   - Actions: Open Studio, Duplicate, Archive
-- [ ] 🔴 Empty state: "Create your first assistant" + 3 template buttons
+- [x] 🔴 Empty state: "Create your first assistant" + 3 template buttons
 
 ### Assistant Studio Layout
-- [ ] 🔴 Split-view layout: config tabs (left) + Live Preview panel (right)
-- [ ] 🔴 Smooth panel transitions between tabs (no jarring reloads)
+- [x] 🔴 Split-view layout: config tabs (left) + Live Preview panel (right)
+- [x] 🔴 Smooth panel transitions between tabs (no jarring reloads)
 
 ### Studio Tabs
 1. **Persona**
-   - [ ] 🔴 Tone, boundaries, welcome message, starter questions
-   - [ ] 🔴 Refine existing config page into this tab
+   - [x] 🔴 Tone, boundaries, welcome message, starter questions
+   - [x] 🔴 Refine existing config page into this tab
 
 2. **Behavior** *(includes Delegation Control Surface — Trust Architecture)*
-   - [ ] 🔴 Template type selector: Support (reactive) / Docs (reference) / Onboarding (guided)
-   - [ ] 🔴 Behavior mode config per type
-   - [ ] 🔴 **Delegation controls** — operator-facing surface for defining the boundary between autonomous and escalated decisions:
+   - [x] 🔴 Template type selector: Support (reactive) / Docs (reference) / Onboarding (guided)
+   - [x] 🔴 Behavior mode config per type
+   - [x] 🔴 **Delegation controls** — operator-facing surface for defining the boundary between autonomous and escalated decisions:
      - Confidence threshold for autonomous answers (below threshold → escalate or refuse, not silently hallucinate)
      - Actions allowed without user confirmation (read-only operations)
      - Actions that always require user confirmation before execution (writes, ticket creation, DB mutations)
      - Hard refusal topics (persona boundaries enforced at generation layer, not just prompt)
-   - [ ] 🟡 "Autonomy level" summary chip (Conservative / Balanced / Proactive) derived from delegation config — visible on Assistants list as an operator trust signal
+   - [x] 🟡 "Autonomy level" summary chip (Conservative / Balanced / Proactive) derived from delegation config — visible on Assistants list as an operator trust signal
 
 3. **Knowledge**
-   - [ ] 🔴 Show attached collections + document count (Collections built in M3)
+   - [x] 🔴 Show attached collections + document count (Collections built in M3)
 
 4. **Handoff**
-   - [ ] 🔴 n8n workflow URL input + trigger thresholds
+   - [x] 🔴 n8n workflow URL input + trigger thresholds
    - [ ] 🟡 Webhook signing config
 
 5. **Widget Theme**
-   - [ ] 🔴 Color tokens, title, icon, widget placement
+   - [x] 🔴 Color tokens, title, icon, widget placement
    - [ ] 🔴 Live preview reflects theme changes in real time
 
 6. **Deploy**
-   - [ ] 🔴 Embed snippet generator with one-click copy + "Copied" toast
-   - [ ] 🔴 Domain allowlist input
-   - [ ] 🟡 Environment tips (staging vs production)
+   - [x] 🔴 Embed snippet generator with one-click copy + "Copied" toast
+   - [x] 🔴 Domain allowlist input
+   - [x] 🟡 Environment tips (staging vs production)
 
 ### Live Preview Panel (must-have)
+- [ ] 🔴 State sync — preview reflects current unsaved config on every change, not last saved state (requires ephemeral config endpoint that accepts a transient config payload without persisting it)
+- [ ] 🔴 Real inference — preview makes actual backend API calls using current unsaved config, not simulated or mocked responses; real RAG retrieval, real grading, real citations
+- [ ] 🔴 Conversation persistence — history preserved while switching between Studio tabs; cleared only on navigating away from Studio entirely
 - [ ] 🔴 Streaming responses with typing indicator
 - [ ] 🔴 Citations UI with expand/collapse animation
 - [ ] 🔴 Confidence indicator (badge tied to SUPPORTED / PARTIAL / UNSUPPORTED) — framed as a trust signal, not a debug label
@@ -176,6 +179,24 @@
 **Outcome:** Upload + manage knowledge with collections and retrieval scoping.
 
 > **Note (from M0):** The current `/knowledge` page is a bridge placeholder that does not yet display seeded or uploaded documents. This milestone should replace it with the full Sources, Ingestion Jobs, and Collections UI, including proper API integration for listing and managing documents.
+
+> **Design note — Sidebar Knowledge vs Studio Knowledge tab:**
+>
+> **Sidebar Knowledge (this milestone)** is the operator-level content management surface. Upload documents, monitor sync jobs, create collections, manage sources. It's org-scoped — all documents and collections across the entire organization regardless of which assistant they're attached to. Think of it as **the library**.
+>
+> **Studio Knowledge tab** is assistant-scoped configuration. It only shows which collections are mounted to *this specific assistant* and lets you attach or detach them. No document management — just pointing the assistant at collections that already exist. Think of it as **the reading list** for one assistant.
+>
+> The workflow flows in one direction:
+> ```
+> Sidebar Knowledge               Studio Knowledge Tab
+> (create & manage)         →     (mount to assistant)
+>
+> Upload docs                     Attach "Getting Started" collection
+> Create collections              Attach "Changelog" collection
+> Monitor sync jobs               ── assistant can now only retrieve
+> Manage sources                     from these two collections ──
+> ```
+> A document never gets uploaded in Studio, and collection mounting never happens in the sidebar.
 
 ### Sources Page
 - [ ] 🔴 Source cards: connection status, last sync, docs count, chunks count, last error

@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function QualityPage() {
     return (
-        <div>
+        <div className="content-area">
             <div className="page-header">
                 <h1 className="page-title">Quality</h1>
                 <p className="page-description">Monitor AI quality, view conversation traces, and identify knowledge gaps.</p>

@@ -10,6 +10,8 @@ import KnowledgeTab from '@/components/studio/KnowledgeTab';
 import HandoffTab, { HandoffConfig, defaultHandoffConfig } from '@/components/studio/HandoffTab';
 import WidgetThemeTab, { WidgetThemeConfig, defaultWidgetTheme } from '@/components/studio/WidgetThemeTab';
 import DeployTab from '@/components/studio/DeployTab';
+import PreviewPanel from '@/components/studio/PreviewPanel';
+import { usePreviewChat } from '@/hooks/usePreviewChat';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -72,9 +74,9 @@ export default function StudioPage() {
     const [handoffConfig, setHandoffConfig] = useState<HandoffConfig>(defaultHandoffConfig);
     const [widgetTheme, setWidgetTheme] = useState<WidgetThemeConfig>(defaultWidgetTheme);
     const [domainAllowlist, setDomainAllowlist] = useState('');
-    const [autonomy, setAutonomy] = useState('balanced');
-    const [threshold, setThreshold] = useState(65);
-    const [lowConf, setLowConf] = useState('escalate');
+
+    // Preview chat — lives at Studio level so it persists across tab switches
+    const { messages: previewMessages, isStreaming, sendMessage: sendPreviewMessage, clearChat } = usePreviewChat(assistantId);
 
     const fetchAssistant = useCallback(async () => {
         try {
@@ -212,73 +214,19 @@ export default function StudioPage() {
 
                 {/* Preview panel (right) */}
                 <div className="studio-right">
-                    <div className="preview-header">
-                        <div className="preview-label">
-                            <div className="live-dot" />
-                            Live Preview
-                        </div>
-                        <div style={{ display: 'flex', gap: '7px', alignItems: 'center' }}>
-                            <div className="ctx-badge">page: /getting-started</div>
-                            <button className="btn btn-ghost btn-sm">Context</button>
-                        </div>
-                    </div>
-
-                    <div className="preview-body">
-                        {/* Welcome */}
-                        <div className="preview-welcome">
-                            <div className="preview-welcome-title">{persona.name || assistant.name}</div>
-                            <div className="preview-welcome-msg">{welcomeMessage || 'Hi there! How can I help you today?'}</div>
-                            <div className="starter-chips">
-                                {starterQuestions.filter(q => q.label.trim()).map((q, i) => (
-                                    <div key={i} className="starter-chip">{q.label}</div>
-                                ))}
-                                {starterQuestions.filter(q => q.label.trim()).length === 0 && (
-                                    <div className="starter-chip" style={{ opacity: 0.5 }}>Add starter questions in Persona tab</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Sample user message */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <div className="msg-user">How do I get started?</div>
-                        </div>
-
-                        {/* Sample assistant response */}
-                        <div className="msg-assistant">
-                            <div className="msg-avatar">{(persona.name || assistant.name || 'A')[0]}</div>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <div className="msg-bubble">
-                                    I&apos;d be happy to help you get started! Here&apos;s what you need to do...
-                                    <div>
-                                        <div className="confidence-badge">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>
-                                            Supported · 94%
-                                        </div>
-                                    </div>
-                                </div>
-                                <button className="trace-btn">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
-                                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                                    </svg>
-                                    Open trace
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Input */}
-                    <div className="preview-input">
-                        <div className="preview-input-wrap">
-                            <input className="preview-input-field" placeholder="Ask a question to preview…" />
-                            <button className="send-btn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                    <PreviewPanel
+                        assistantName={persona.name || assistant.name}
+                        welcomeMessage={welcomeMessage || 'Hi there! How can I help you today?'}
+                        starterQuestions={starterQuestions.filter(q => q.label.trim()).map(q => q.label)}
+                        messages={previewMessages}
+                        isStreaming={isStreaming}
+                        onSend={(content) => sendPreviewMessage(content, {
+                            persona,
+                            assistantType,
+                            confidenceThreshold: delegationConfig.confidenceThreshold,
+                        })}
+                        onClear={clearChat}
+                    />
                 </div>
             </div>
         </div>

@@ -405,6 +405,231 @@ export class ConversationService {
     }
 
     /**
+     * Preview message — same RAG pipeline as sendMessage but:
+     * 1. Uses ephemeral config (from payload) instead of DB for system prompt
+     * 2. Streams tokens via callback
+     * 3. Computes delegation signals
+     */
+    async previewMessage(
+        assistantId: string,
+        conversationId: string | null,
+        userMessage: string,
+        config: {
+            persona?: Record<string, any>;
+            assistantType?: string;
+            confidenceThreshold?: number;
+        },
+        onToken: (token: string) => void,
+    ): Promise<{
+        conversationId: string;
+        messageId: string;
+        citations: Array<{ docId: string; chunkId: string; text: string }>;
+        confidence: number | null;
+        grade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | null;
+        thresholdTriggered: boolean;
+        delegationDecision: 'answer' | 'answer_with_caveat' | 'escalate';
+    }> {
+        // 1. Create or validate conversation
+        if (!conversationId) {
+            conversationId = await this.createConversation(assistantId, 'preview');
+        } else {
+            const { data: conv, error } = await this.supabase
+                .from('conversations')
+                .select('assistant_id')
+                .eq('id', conversationId)
+                .single();
+
+            if (error || !conv) {
+                conversationId = await this.createConversation(assistantId, 'preview');
+            } else if (conv.assistant_id !== assistantId) {
+                conversationId = await this.createConversation(assistantId, 'preview');
+            }
+        }
+
+        // 2. Save user message
+        const { data: userMsg, error: userMsgError } = await this.supabase
+            .from('messages')
+            .insert({
+                conversation_id: conversationId,
+                role: 'user',
+                content: userMessage,
+            })
+            .select('id')
+            .single();
+
+        if (userMsgError) {
+            throw new Error(`Failed to save message: ${userMsgError.message}`);
+        }
+
+        // 3. RAG search (uses saved knowledge config — this is by design for M1)
+        let searchResults: Awaited<ReturnType<typeof this.knowledgeService.search>> = [];
+        try {
+            searchResults = await this.knowledgeService.search(
+                assistantId,
+                userMessage,
+                5,
+                conversationId,
+                undefined,
+                { useHybridSearch: true },
+            );
+        } catch (error) {
+            console.warn(`[PREVIEW] Search failed, proceeding without context`);
+        }
+
+        // 4. Get conversation history
+        const { data: history } = await this.supabase
+            .from('messages')
+            .select('role, content')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true })
+            .limit(10);
+
+        // 5. Build system prompt from PAYLOAD config (not DB)
+        const context = searchResults.map((r) => r.content);
+        const systemPrompt = this.buildSystemPromptFromPayload(config);
+
+        // 6. Build RAG prompt
+        const messages = this.llmService.buildRAGPrompt(
+            systemPrompt,
+            context,
+            userMessage,
+        );
+
+        // Add conversation history
+        if (history && history.length > 1) {
+            const historyMessages = history.slice(0, -1).map((m) => ({
+                role: m.role as 'user' | 'assistant' | 'system',
+                content: m.content,
+            }));
+            messages.splice(1, 0, ...historyMessages);
+        }
+
+        // 7. Stream response
+        let fullContent = '';
+        try {
+            const stream = this.llmService.streamComplete(messages);
+            for await (const chunk of stream) {
+                if (chunk.content) {
+                    fullContent += chunk.content;
+                    onToken(chunk.content);
+                }
+            }
+        } catch (error) {
+            // Fallback: non-streaming completion
+            console.warn('[PREVIEW] Stream failed, falling back to non-streaming');
+            const response = await this.llmService.safeComplete(messages);
+            fullContent = response.content;
+            onToken(fullContent);
+        }
+
+        // 8. Build citations
+        const citations = searchResults.map((r) => ({
+            docId: r.documentId,
+            chunkId: r.chunkId,
+            text: r.content.substring(0, 100) + '...',
+        }));
+
+        // 9. Grade answer
+        const isConversational = this.isGreeting(userMessage) || searchResults.length === 0;
+        let gradingGrade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | null = null;
+        let gradingConfidence: number | null = null;
+
+        if (!isConversational) {
+            const gradingResult = await this.gradeAnswer(context, fullContent);
+            gradingGrade = gradingResult.grade;
+            gradingConfidence = gradingResult.confidence;
+        }
+
+        // 10. Compute delegation signals
+        const threshold = (config.confidenceThreshold ?? 65) / 100; // Convert % to 0-1
+        const confidence = gradingConfidence ?? 1.0;
+        const thresholdTriggered = confidence < threshold;
+        let delegationDecision: 'answer' | 'answer_with_caveat' | 'escalate' = 'answer';
+        if (thresholdTriggered) {
+            // If confidence is very low (below half of threshold), escalate
+            delegationDecision = confidence < threshold * 0.5 ? 'escalate' : 'answer_with_caveat';
+        }
+
+        // 11. Save assistant message
+        const { data: assistantMsg } = await this.supabase
+            .from('messages')
+            .insert({
+                conversation_id: conversationId,
+                role: 'assistant',
+                content: fullContent,
+                citations,
+                confidence: gradingConfidence,
+                grade: gradingGrade,
+            })
+            .select('id')
+            .single();
+
+        return {
+            conversationId,
+            messageId: assistantMsg?.id || '',
+            citations,
+            confidence: gradingConfidence,
+            grade: gradingGrade,
+            thresholdTriggered,
+            delegationDecision,
+        };
+    }
+
+    /**
+     * Build system prompt from an ephemeral config payload (not from DB).
+     * Used by the preview endpoint so operators can test unsaved persona changes.
+     */
+    private buildSystemPromptFromPayload(config: {
+        persona?: Record<string, any>;
+        assistantType?: string;
+    }): string {
+        const persona = config.persona || {};
+        const assistantType = config.assistantType || 'reactive';
+
+        const parts: string[] = [];
+
+        // 1. Identity
+        if (persona.name) {
+            parts.push(`You are ${persona.name}.`);
+            parts.push('IMPORTANT: You have ALREADY introduced yourself. Do NOT say "Hi I am..." or similar. Just answer the user directly unless they ask who you are.');
+        } else {
+            parts.push('You are a helpful customer support assistant.');
+        }
+
+        // 2. Tone & voice
+        if (persona.tone) parts.push(`Your tone is: ${persona.tone}.`);
+        if (persona.voice) parts.push(persona.voice);
+
+        // 3. Assistant type behavior
+        switch (assistantType) {
+            case 'reactive':
+                parts.push('You wait for the user to ask questions and provide accurate, cited answers.');
+                break;
+            case 'guided':
+                parts.push('You proactively guide users step-by-step. Ask clarifying questions. Track progress through tasks.');
+                break;
+            case 'reference':
+                parts.push('You provide technical, detailed answers with code examples. Be precise and thorough.');
+                break;
+        }
+
+        // 4. Boundaries
+        if (persona.boundaries) {
+            parts.push(`\nBOUNDARIES:\n${persona.boundaries}`);
+        }
+
+        // 5. Custom instructions
+        if (persona.customInstructions) {
+            parts.push(`\n${persona.customInstructions}`);
+        }
+
+        // 6. Core guardrails
+        parts.push('If you\'re unsure about something, admit it instead of making things up.');
+
+        return parts.join('\n');
+    }
+
+    /**
      * Grade an answer to check if it's supported by the retrieved context.
      * Returns: grade, confidence, and reasoning
      */

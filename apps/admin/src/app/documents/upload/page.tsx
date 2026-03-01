@@ -35,10 +35,18 @@ export default function UploadDocumentPage() {
     const [content, setContent] = useState('');
 
     useEffect(() => {
-        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
-        if (savedAssistantId) {
-            setAssistantId(savedAssistantId);
-        }
+        // Auto-detect assistantId from first assistant
+        (async () => {
+            try {
+                const res = await fetch(`${API_URL}/assistants`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        setAssistantId(data[0].id);
+                    }
+                }
+            } catch { /* ignore */ }
+        })();
 
         // Fetch supported file types
         fetch(`${API_URL}/knowledge/upload/supported`)
@@ -202,7 +210,7 @@ export default function UploadDocumentPage() {
 
     if (!assistantId) {
         return (
-            <div>
+            <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Upload Document</h1>
                 </div>
@@ -217,7 +225,7 @@ export default function UploadDocumentPage() {
     }
 
     return (
-        <div>
+        <div className="content-area">
             <div className="page-header">
                 <Link
                     href="/documents"

@@ -91,7 +91,7 @@ export default function Dashboard() {
                 <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '15px', fontWeight: 600, color: 'var(--t1)', marginBottom: '6px' }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 600, color: 'var(--t1)', marginBottom: '6px' }}>
               Connect Your Assistant
             </div>
             <div style={{ fontSize: '12px', color: 'var(--t2)', marginBottom: '20px', lineHeight: 1.5 }}>
@@ -148,102 +148,104 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-description">Overview of your AI support copilot</p>
-        </div>
-      </div>
-
-      <div className="page-body">
-        {/* Assistant info */}
-        <div className="coll-card" style={{ marginBottom: '20px' }}>
-          <div className="coll-icon" style={{ background: 'var(--mint1)', color: 'var(--mint)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
-            </svg>
-          </div>
-          <div className="coll-info">
-            <div className="coll-nm">Current Assistant</div>
-            <div className="coll-mt" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>{assistantId}</div>
-          </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button className="btn btn-ghost btn-sm" onClick={handleCopyAssistantId}>
-              {copied ? '✓ Copied' : 'Copy'}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowAssistantModal(true)}>Switch</button>
-            <button className="btn btn-ghost btn-sm" onClick={handleClearAssistant} style={{ color: 'var(--red)' }}>
-              Disconnect
-            </button>
+      <div className="content-area">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-description">Overview of your AI support copilot</p>
           </div>
         </div>
 
-        {/* Stats */}
-        {loading ? (
-          <div className="loading">Loading...</div>
-        ) : (
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-label">Documents</div>
-              <div className="stat-value">{stats?.documentsCount || 0}</div>
+        <div className="page-body">
+          {/* Assistant info */}
+          <div className="coll-card" style={{ marginBottom: '20px' }}>
+            <div className="coll-icon" style={{ background: 'var(--mint1)', color: 'var(--mint)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+              </svg>
             </div>
-            <div className="stat-card">
-              <div className="stat-label">Conversations</div>
-              <div className="stat-value">{stats?.conversationsCount || 0}</div>
+            <div className="coll-info">
+              <div className="coll-nm">Current Assistant</div>
+              <div className="coll-mt" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>{assistantId}</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-label">Messages</div>
-              <div className="stat-value">{stats?.messagesCount || 0}</div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button className="btn btn-ghost btn-sm" onClick={handleCopyAssistantId}>
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowAssistantModal(true)}>Switch</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleClearAssistant} style={{ color: 'var(--red)' }}>
+                Disconnect
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Quick actions */}
-        <div style={{ marginTop: '8px' }}>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase' as const, color: 'var(--t2)', marginBottom: '12px' }}>
-            Quick Actions
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-            <Link href="/assistants" style={{ textDecoration: 'none' }}>
-              <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div className="coll-icon" style={{ background: 'var(--mint1)', color: 'var(--mint)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
-                  </svg>
-                </div>
-                <div className="coll-info">
-                  <div className="coll-nm">Assistants</div>
-                  <div className="coll-mt">Manage & configure</div>
-                </div>
+          {/* Stats */}
+          {loading ? (
+            <div className="loading">Loading...</div>
+          ) : (
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-label">Documents</div>
+                <div className="stat-value">{stats?.documentsCount || 0}</div>
               </div>
-            </Link>
-            <Link href="/knowledge" style={{ textDecoration: 'none' }}>
-              <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div className="coll-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-                  </svg>
-                </div>
-                <div className="coll-info">
-                  <div className="coll-nm">Knowledge</div>
-                  <div className="coll-mt">Upload documents</div>
-                </div>
+              <div className="stat-card">
+                <div className="stat-label">Conversations</div>
+                <div className="stat-value">{stats?.conversationsCount || 0}</div>
               </div>
-            </Link>
-            <Link href="/quality" style={{ textDecoration: 'none' }}>
-              <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div className="coll-icon" style={{ background: 'var(--purple1)', color: 'var(--purple)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                    <path d="M18 20V10M12 20V4M6 20v-6" />
-                  </svg>
-                </div>
-                <div className="coll-info">
-                  <div className="coll-nm">Quality</div>
-                  <div className="coll-mt">Review conversations</div>
-                </div>
+              <div className="stat-card">
+                <div className="stat-label">Messages</div>
+                <div className="stat-value">{stats?.messagesCount || 0}</div>
               </div>
-            </Link>
+            </div>
+          )}
+
+          {/* Quick actions */}
+          <div style={{ marginTop: '8px' }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase' as const, color: 'var(--t2)', marginBottom: '12px' }}>
+              Quick Actions
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <Link href="/assistants" style={{ textDecoration: 'none' }}>
+                <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <div className="coll-icon" style={{ background: 'var(--mint1)', color: 'var(--mint)' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                      <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+                    </svg>
+                  </div>
+                  <div className="coll-info">
+                    <div className="coll-nm">Assistants</div>
+                    <div className="coll-mt">Manage & configure</div>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/knowledge" style={{ textDecoration: 'none' }}>
+                <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <div className="coll-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                      <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+                    </svg>
+                  </div>
+                  <div className="coll-info">
+                    <div className="coll-nm">Knowledge</div>
+                    <div className="coll-mt">Upload documents</div>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/quality" style={{ textDecoration: 'none' }}>
+                <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <div className="coll-icon" style={{ background: 'var(--purple1)', color: 'var(--purple)' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                      <path d="M18 20V10M12 20V4M6 20v-6" />
+                    </svg>
+                  </div>
+                  <div className="coll-info">
+                    <div className="coll-nm">Quality</div>
+                    <div className="coll-mt">Review conversations</div>
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

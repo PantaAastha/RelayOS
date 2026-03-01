@@ -1,6 +1,6 @@
 export default function SettingsPage() {
     return (
-        <div>
+        <div className="content-area">
             <div className="page-header">
                 <h1 className="page-title">Settings</h1>
                 <p className="page-description">Organization settings, API keys, and configuration.</p>

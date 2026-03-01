@@ -1,6 +1,6 @@
 export default function IntegrationsPage() {
     return (
-        <div>
+        <div className="content-area">
             <div className="page-header">
                 <h1 className="page-title">Integrations</h1>
                 <p className="page-description">Connect external tools and workflows to your assistants.</p>

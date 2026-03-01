@@ -7,10 +7,11 @@ import {
     Param,
     Headers,
     Req,
+    Res,
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { ConversationService } from './conversation.service';
 
 interface SendMessageDto {
@@ -66,6 +67,73 @@ export class ConversationController {
                 'Failed to process message',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
+        }
+    }
+
+    /**
+     * POST /conversation/preview - Stream a preview response with ephemeral config (SSE)
+     * Used by Studio Live Preview panel. Accepts transient persona config without persisting.
+     */
+    @Post('preview')
+    async previewMessage(
+        @Headers() headers: Record<string, string>,
+        @Body() dto: {
+            content: string;
+            conversationId?: string;
+            config?: {
+                persona?: Record<string, any>;
+                assistantType?: string;
+                confidenceThreshold?: number;
+            };
+        },
+        @Res() res: Response,
+    ) {
+        const assistantId = headers['x-assistant-id'];
+        if (!assistantId) {
+            res.status(400).json({ error: 'X-Assistant-ID header is required' });
+            return;
+        }
+
+        if (!dto.content) {
+            res.status(400).json({ error: 'content is required' });
+            return;
+        }
+
+        // Set SSE headers
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.flushHeaders();
+
+        try {
+            const result = await this.conversationService.previewMessage(
+                assistantId,
+                dto.conversationId ?? null,
+                dto.content,
+                dto.config || {},
+                // onToken callback — stream each token as an SSE event
+                (token: string) => {
+                    res.write(`event: token\ndata: ${JSON.stringify({ token })}\n\n`);
+                },
+            );
+
+            // Send done event with metadata only (no content — avoids double-render)
+            res.write(`event: done\ndata: ${JSON.stringify({
+                conversationId: result.conversationId,
+                messageId: result.messageId,
+                citations: result.citations,
+                confidence: result.confidence,
+                grade: result.grade,
+                thresholdTriggered: result.thresholdTriggered,
+                delegationDecision: result.delegationDecision,
+            })}\n\n`);
+
+            res.end();
+        } catch (error) {
+            console.error('Error in preview:', error);
+            res.write(`event: error\ndata: ${JSON.stringify({ error: 'Preview failed' })}\n\n`);
+            res.end();
         }
     }
 

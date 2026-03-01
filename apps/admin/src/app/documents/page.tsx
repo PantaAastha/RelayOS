@@ -39,10 +39,17 @@ export default function DocumentsPage() {
     };
 
     useEffect(() => {
-        const savedAssistantId = localStorage.getItem('relayos_assistant_id') || localStorage.getItem('relayos_tenant_id');
-        if (savedAssistantId) {
-            setAssistantId(savedAssistantId);
-        }
+        (async () => {
+            try {
+                const res = await fetch(`${API_URL}/assistants`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        setAssistantId(data[0].id);
+                    }
+                }
+            } catch { /* ignore */ }
+        })();
     }, []);
 
     const fetchDocuments = useCallback(async () => {
@@ -155,7 +162,7 @@ export default function DocumentsPage() {
 
     if (!assistantId) {
         return (
-            <div>
+            <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Documents</h1>
                 </div>
@@ -170,7 +177,7 @@ export default function DocumentsPage() {
     }
 
     return (
-        <div>
+        <div className="content-area">
             {/* Toast notifications */}
             {toasts.length > 0 && (
                 <div className="toast-container">
