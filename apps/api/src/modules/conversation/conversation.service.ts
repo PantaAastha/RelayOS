@@ -891,6 +891,102 @@ REASON: [one sentence explanation]`;
     }
 
     /**
+     * List conversations across all assistants in an org (org-scoped).
+     */
+    async listConversationsByOrg(assistantIds: string[]): Promise<Array<{
+        id: string;
+        createdAt: string;
+        status: string;
+        messageCount: number;
+        lastMessage?: string;
+        assistantId?: string;
+        assistantName?: string;
+    }>> {
+        if (assistantIds.length === 0) return [];
+
+        const { data: conversations, error } = await this.supabase
+            .from('conversations')
+            .select('id, created_at, status, assistant_id, assistants!inner(name)')
+            .in('assistant_id', assistantIds)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            throw new Error(`Failed to fetch conversations: ${error.message}`);
+        }
+
+        const results = await Promise.all(
+            (conversations || []).map(async (conv: any) => {
+                const { data: messages } = await this.supabase
+                    .from('messages')
+                    .select('content, role, created_at')
+                    .eq('conversation_id', conv.id)
+                    .order('created_at', { ascending: false });
+
+                const lastUserMessage = messages?.find(m => m.role === 'user');
+
+                return {
+                    id: conv.id,
+                    createdAt: conv.created_at,
+                    status: conv.status,
+                    messageCount: messages?.length || 0,
+                    lastMessage: lastUserMessage?.content?.substring(0, 100),
+                    assistantId: conv.assistant_id,
+                    assistantName: conv.assistants?.name,
+                };
+            })
+        );
+
+        return results;
+    }
+
+    /**
+     * Get aggregate statistics across all assistants in an org (org-scoped).
+     */
+    async getStatsByOrg(assistantIds: string[]): Promise<{
+        documentsCount: number;
+        conversationsCount: number;
+        messagesCount: number;
+        assistantCount: number;
+    }> {
+        if (assistantIds.length === 0) {
+            return { documentsCount: 0, conversationsCount: 0, messagesCount: 0, assistantCount: 0 };
+        }
+
+        const [docsResult, convsResult] = await Promise.all([
+            this.supabase
+                .from('documents')
+                .select('id', { count: 'exact', head: true })
+                .in('assistant_id', assistantIds),
+            this.supabase
+                .from('conversations')
+                .select('id', { count: 'exact', head: true })
+                .in('assistant_id', assistantIds),
+        ]);
+
+        // Messages count via conversation join
+        const { data: convIds } = await this.supabase
+            .from('conversations')
+            .select('id')
+            .in('assistant_id', assistantIds);
+
+        let messagesCount = 0;
+        if (convIds && convIds.length > 0) {
+            const { count } = await this.supabase
+                .from('messages')
+                .select('id', { count: 'exact', head: true })
+                .in('conversation_id', convIds.map(c => c.id));
+            messagesCount = count || 0;
+        }
+
+        return {
+            documentsCount: docsResult.count || 0,
+            conversationsCount: convsResult.count || 0,
+            messagesCount,
+            assistantCount: assistantIds.length,
+        };
+    }
+
+    /**
      * Submit feedback (thumbs up/down) on a message
      */
     async submitFeedback(

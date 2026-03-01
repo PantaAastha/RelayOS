@@ -6,9 +6,10 @@ import { KnowledgeController } from './knowledge.controller';
 import { FileExtractorService } from './file-extractor.service';
 import { ChunkerService } from './chunker.service';
 import { QueryProcessorService } from './query-processor.service';
+import { AssistantsModule } from '../assistants/assistants.module';
 
 @Module({
-    imports: [ConfigModule],
+    imports: [ConfigModule, AssistantsModule],
     providers: [KnowledgeService, FileExtractorService, ChunkerService, QueryProcessorService],
     controllers: [KnowledgeController],
     exports: [KnowledgeService, QueryProcessorService],

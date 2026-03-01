@@ -11,8 +11,10 @@ import {
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ConversationService } from './conversation.service';
+import { AssistantsService } from '../assistants/assistants.service';
 
 interface SendMessageDto {
     conversationId?: string;
@@ -33,7 +35,10 @@ interface FeedbackDto {
 
 @Controller('conversation')
 export class ConversationController {
-    constructor(private conversationService: ConversationService) { }
+    constructor(
+        private conversationService: ConversationService,
+        private assistantsService: AssistantsService,
+    ) { }
 
     /**
      * POST /conversation/message - Send a message and get AI response
@@ -165,33 +170,64 @@ export class ConversationController {
 
     /**
      * GET /conversation/stats - Get dashboard statistics
+     * Supports: X-Organization-ID (org-scoped) or X-Assistant-ID (assistant-scoped)
      * IMPORTANT: Must be defined BEFORE :id route
      */
-    @Get('stats')
+    @SkipThrottle()
     @Get('stats')
     async getStats(@Headers() headers: Record<string, string>) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+
+        if (orgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(orgId);
+            return this.conversationService.getStatsByOrg(assistantIds);
         }
 
-        const stats = await this.conversationService.getStats(assistantId);
-        return stats;
+        if (assistantId) {
+            return this.conversationService.getStats(assistantId);
+        }
+
+        // Fallback: auto-detect org
+        const defaultOrgId = await this.assistantsService.getDefaultOrgId();
+        if (defaultOrgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(defaultOrgId);
+            return this.conversationService.getStatsByOrg(assistantIds);
+        }
+
+        return { documentsCount: 0, conversationsCount: 0, messagesCount: 0, assistantCount: 0 };
     }
 
     /**
-     * GET /conversation - List all conversations for tenant
+     * GET /conversation - List conversations
+     * Supports: X-Organization-ID (org-scoped) or X-Assistant-ID (assistant-scoped)
      */
-    @Get()
+    @SkipThrottle()
     @Get()
     async listConversations(@Headers() headers: Record<string, string>) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+
+        if (orgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(orgId);
+            const conversations = await this.conversationService.listConversationsByOrg(assistantIds);
+            return { conversations };
         }
 
-        const conversations = await this.conversationService.listConversations(assistantId);
-        return { conversations };
+        if (assistantId) {
+            const conversations = await this.conversationService.listConversations(assistantId);
+            return { conversations };
+        }
+
+        // Fallback: auto-detect org
+        const defaultOrgId = await this.assistantsService.getDefaultOrgId();
+        if (defaultOrgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(defaultOrgId);
+            const conversations = await this.conversationService.listConversationsByOrg(assistantIds);
+            return { conversations };
+        }
+
+        return { conversations: [] };
     }
 
     /**

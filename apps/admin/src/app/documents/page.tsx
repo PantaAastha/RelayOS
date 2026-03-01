@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useOrg } from '@/components/OrgContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -23,7 +24,8 @@ interface Toast {
 export default function DocumentsPage() {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
-    const [assistantId, setAssistantId] = useState('');
+    const { orgId, assistants, loading: orgLoading } = useOrg();
+    const assistantId = assistants[0]?.id || '';
     const [reingestingId, setReingestingId] = useState<string | null>(null);
     const [reingestingAll, setReingestingAll] = useState(false);
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -38,26 +40,11 @@ export default function DocumentsPage() {
         }, 4000);
     };
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetch(`${API_URL}/assistants`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        setAssistantId(data[0].id);
-                    }
-                }
-            } catch { /* ignore */ }
-        })();
-    }, []);
-
     const fetchDocuments = useCallback(async () => {
-        if (!assistantId) return;
         try {
-            const res = await fetch(`${API_URL}/knowledge/documents`, {
-                headers: { 'X-Assistant-ID': assistantId },
-            });
+            const headers: Record<string, string> = {};
+            if (orgId) headers['X-Organization-ID'] = orgId;
+            const res = await fetch(`${API_URL}/knowledge/documents`, { headers });
             const data = await res.json();
             setDocuments(data.documents || []);
         } catch (error) {
@@ -65,11 +52,11 @@ export default function DocumentsPage() {
         } finally {
             setLoading(false);
         }
-    }, [assistantId]);
+    }, [orgId]);
 
     useEffect(() => {
-        fetchDocuments();
-    }, [fetchDocuments]);
+        if (!orgLoading) fetchDocuments();
+    }, [orgLoading, fetchDocuments]);
 
     const handleDeleteClick = (id: string) => {
         setDeleteTargetId(id);

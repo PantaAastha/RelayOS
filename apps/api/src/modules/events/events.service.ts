@@ -176,6 +176,53 @@ export class EventsService {
     }
 
     /**
+     * List events across all assistants in an org (org-scoped).
+     */
+    async listEventsByOrg(
+        assistantIds: string[],
+        options?: {
+            eventType?: EventType;
+            since?: Date;
+            search?: string;
+            limit?: number;
+        },
+    ) {
+        if (assistantIds.length === 0) return [];
+        const limit = options?.limit ?? 50;
+
+        let query = this.supabase
+            .from('events')
+            .select('*')
+            .in('assistant_id', assistantIds)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (options?.eventType) {
+            query = query.eq('event_type', options.eventType);
+        }
+
+        if (options?.since) {
+            query = query.gte('created_at', options.since.toISOString());
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            throw new Error(`Failed to fetch events: ${error.message}`);
+        }
+
+        if (options?.search && data) {
+            const searchLower = options.search.toLowerCase();
+            return data.filter(event =>
+                JSON.stringify(event.payload).toLowerCase().includes(searchLower) ||
+                event.event_type.toLowerCase().includes(searchLower)
+            );
+        }
+
+        return data;
+    }
+
+    /**
      * Get a single event by ID
      */
     async getEventById(eventId: number) {

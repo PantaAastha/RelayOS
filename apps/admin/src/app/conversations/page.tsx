@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useOrg } from '@/components/OrgContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -11,35 +12,19 @@ interface Conversation {
     status: string;
     messageCount: number;
     lastMessage?: string;
+    assistantName?: string;
 }
 
 export default function ConversationsPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
-    const [assistantId, setAssistantId] = useState('');
-
-    // Auto-detect assistantId from first assistant
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetch(`${API_URL}/assistants`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        setAssistantId(data[0].id);
-                    }
-                }
-            } catch { /* ignore */ }
-        })();
-    }, []);
+    const { orgId, loading: orgLoading } = useOrg();
 
     const fetchConversations = useCallback(async () => {
-        if (!assistantId) return;
-
         try {
-            const res = await fetch(`${API_URL}/conversation`, {
-                headers: { 'X-Assistant-ID': assistantId },
-            });
+            const headers: Record<string, string> = {};
+            if (orgId) headers['X-Organization-ID'] = orgId;
+            const res = await fetch(`${API_URL}/conversation`, { headers });
             const data = await res.json();
             setConversations(data.conversations || []);
         } catch (error) {
@@ -47,11 +32,11 @@ export default function ConversationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [assistantId]);
+    }, [orgId]);
 
     useEffect(() => {
-        fetchConversations();
-    }, [fetchConversations]);
+        if (!orgLoading) fetchConversations();
+    }, [orgLoading, fetchConversations]);
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('en-US', {
@@ -75,15 +60,13 @@ export default function ConversationsPage() {
         }
     };
 
-    if (!assistantId && !loading) {
+    if (orgLoading || loading) {
         return (
             <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Conversations</h1>
                 </div>
-                <div className="empty-state">
-                    <p>No assistant found. Create one from the <Link href="/assistants">Assistants</Link> page.</p>
-                </div>
+                <div className="loading">Loading...</div>
             </div>
         );
     }

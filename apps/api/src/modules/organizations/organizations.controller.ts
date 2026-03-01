@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, BadRequestException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { OrganizationsService } from './organizations.service';
 
 @Controller('organizations')
@@ -13,6 +14,7 @@ export class OrganizationsController {
         return this.organizationsService.createOrganization(body);
     }
 
+    @SkipThrottle()
     @Get()
     async listOrganizations() {
         return this.organizationsService.listOrganizations();

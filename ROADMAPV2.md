@@ -86,6 +86,41 @@
 
 ---
 
+## Milestone 0.5 — Org-Scoped Navigation (🔴)
+**Outcome:** Every sidebar view shows org-wide data. No "current assistant" concept at the nav level. Aligns codebase with [`docs/Notes.md`](file:///Users/aasthapanta/PersonalProject/Nov2025-Dec2025-Jan2026-Feb2026/RelayOS/docs/Notes.md) navigation spec.
+
+> **Context:** The tenant → assistant migration left all data tables (`documents`, `conversations`, `events`, `messages`, `grading`, `feedback`) scoped to `assistant_id`. Every admin page requires `X-Assistant-ID` header. The frontend hacks around this by auto-fetching the first assistant — which triggers 429 rate limits and only shows one assistant's data. The sidebar has 7 items instead of the canonical 6.
+
+### Backend — Org-Scoped API Endpoints
+- [x] 🔴 **`GET /knowledge/documents?orgId=`** — list documents across all assistants in org (`WHERE assistant_id IN (SELECT id FROM assistants WHERE organization_id = ?)`)
+- [x] 🔴 **`GET /conversation?orgId=`** — list conversations across all assistants, include `assistantName` in response
+- [x] 🔴 **`GET /events?orgId=`** — list events across all assistants
+- [x] 🔴 **`GET /stats?orgId=`** — aggregate KPIs (docs, conversations, messages) across all assistants
+- [x] 🔴 Keep existing `X-Assistant-ID`-scoped endpoints for widget/studio use — org endpoints are additive, not replacements
+- [x] 🔴 `@SkipThrottle()` on `GET /assistants`, `GET /organizations` — admin listing endpoints are not abuse vectors
+- [x] 🔴 Bump default rate limit from 10 → 60 req/min (current value was "for testing")
+
+### Frontend — Shared Context & Nav Cleanup
+- [x] 🔴 **`AssistantContext` provider** — single `GET /assistants` call at app mount, shared across all pages via React context. Eliminates 6 redundant API calls and fixes 429 errors.
+- [x] 🔴 **Remove `Conversations` from sidebar nav** — accessible as sub-page of Quality (`/quality/conversations`) per Notes.md
+- [x] 🔴 **Remove `Events` route from sidebar** — accessible from Settings or Trace Viewer, not a nav item
+- [x] 🔴 Sidebar nav items (exactly 6): Dashboard · Assistants · Knowledge · Quality · Integrations · Settings
+- [x] 🔴 All sidebar pages use `orgId` (from context) instead of `assistantId` in API calls
+- [ ] 🔴 Dashboard: remove "Current Assistant" switcher, show org-aggregate KPIs across all assistants
+
+### Database (no schema changes needed)
+- The `assistants` table already has `organization_id` FK
+- Org-scoped queries JOIN through: `WHERE assistant_id IN (SELECT id FROM assistants WHERE organization_id = ?)`
+- No migrations required — purely query-level change
+
+**Acceptance**
+- Knowledge page shows documents across all assistants (not just the first one)
+- Dashboard shows aggregate stats without requiring a "current assistant"
+- Navigating rapidly between pages produces no 429 errors
+- Sidebar has exactly 6 items matching Notes.md spec
+
+---
+
 ## Milestone 1 — Assistant Studio (🔴)
 **Outcome:** Create → configure → test → deploy assistants from one place. The "wow" screen.
 

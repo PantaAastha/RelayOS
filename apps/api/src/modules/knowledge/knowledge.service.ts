@@ -660,6 +660,38 @@ Most to least relevant (numbers only):`;
     }
 
     /**
+     * Get documents across all assistants in an org (org-scoped).
+     */
+    async getDocumentsByOrg(assistantIds: string[]): Promise<Document[]> {
+        if (assistantIds.length === 0) return [];
+
+        const { data, error } = await this.supabase
+            .from('documents')
+            .select('*, assistants!inner(name)')
+            .in('assistant_id', assistantIds)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            throw new Error(`Failed to fetch documents: ${error.message}`);
+        }
+
+        return (data || []).map((doc: any) => ({
+            id: doc.id,
+            tenantId: doc.tenant_id,
+            assistantId: doc.assistant_id,
+            assistantName: doc.assistants?.name,
+            title: doc.title,
+            content: doc.content,
+            sourceUrl: doc.source_url,
+            docType: doc.doc_type,
+            version: doc.version,
+            status: doc.status,
+            createdAt: doc.created_at,
+        }));
+    }
+
+    /**
      * Delete a document and its chunks
      */
     async deleteDocument(documentId: string): Promise<void> {

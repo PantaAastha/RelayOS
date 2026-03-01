@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import { SkeletonTable } from '@/components/Skeleton';
+import { useOrg } from '@/components/OrgContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -73,8 +74,6 @@ const FILTERS = [
 ];
 
 export default function AssistantsPage() {
-    const [assistants, setAssistants] = useState<Assistant[]>([]);
-    const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const { addToast } = useToast();
@@ -86,57 +85,15 @@ export default function AssistantsPage() {
     const [newType, setNewType] = useState<'reactive' | 'guided' | 'reference'>('reactive');
     const [submitting, setSubmitting] = useState(false);
 
-    // Default organization (single-org mode)
-    const [orgId, setOrgId] = useState<string>('');
+    // Org context — orgId comes from shared provider, no auto-create
+    const { orgId, assistants, loading, refresh } = useOrg();
 
     // Delete modal
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
     const fetchAssistants = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await fetch(`${API_URL}/assistants`);
-            if (!res.ok) throw new Error('Failed');
-            const data = await res.json();
-            setAssistants(data || []);
-            // Derive orgId from the first assistant if available
-            if (data?.length > 0 && data[0].organization_id) {
-                setOrgId(data[0].organization_id);
-            }
-        } catch {
-            addToast({ title: 'Error', message: 'Failed to load assistants', variant: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    }, [addToast]);
-
-    // Fetch or auto-create default org (single-org mode — limited to one)
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetch(`${API_URL}/organizations`);
-                if (res.ok) {
-                    const orgs = await res.json();
-                    if (Array.isArray(orgs) && orgs.length > 0) {
-                        setOrgId(orgs[0].id);
-                    } else {
-                        // No org exists — auto-create a default one
-                        const createRes = await fetch(`${API_URL}/organizations`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: 'My Organization', slug: 'default' }),
-                        });
-                        if (createRes.ok) {
-                            const newOrg = await createRes.json();
-                            setOrgId(newOrg.id);
-                        }
-                    }
-                }
-            } catch { /* ignore */ }
-        })();
-    }, []);
-
-    useEffect(() => { fetchAssistants(); }, []);
+        await refresh();
+    }, [refresh]);
 
     const handleCreate = async () => {
         if (!newName || !newSlug) {
@@ -156,7 +113,7 @@ export default function AssistantsPage() {
             });
             const data = await res.json();
             if (res.ok) {
-                setAssistants((prev) => [data, ...prev]);
+                await refresh();
                 addToast({ title: 'Created', message: `${data.name} created`, variant: 'success' });
                 setShowCreate(false);
                 setNewName('');
@@ -176,7 +133,7 @@ export default function AssistantsPage() {
         try {
             const res = await fetch(`${API_URL}/assistants/${deleteId}`, { method: 'DELETE' });
             if (res.ok) {
-                setAssistants((prev) => prev.filter((a) => a.id !== deleteId));
+                await refresh();
                 addToast({ title: 'Deleted', variant: 'success' });
             } else {
                 throw new Error('Failed');

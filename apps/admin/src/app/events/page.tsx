@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useOrg } from '@/components/OrgContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -47,42 +48,28 @@ const EVENT_CATEGORIES: Record<string, string> = {
 export default function EventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
-    const [assistantId, setAssistantId] = useState('');
+    const { orgId, loading: orgLoading } = useOrg();
     const [eventTypes, setEventTypes] = useState<string[]>([]);
     const [selectedType, setSelectedType] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetch(`${API_URL}/assistants`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        setAssistantId(data[0].id);
-                    }
-                }
-            } catch { /* ignore */ }
-        })();
-    }, []);
-
     const fetchEvents = useCallback(async () => {
-        if (!assistantId) {
+        if (orgLoading || !orgId) {
             setLoading(false);
             return;
         }
 
         try {
+            const headers: Record<string, string> = {};
+            if (orgId) headers['X-Organization-ID'] = orgId;
             const params = new URLSearchParams();
-            if (selectedType) params.append('type', selectedType);
-            if (searchQuery) params.append('search', searchQuery);
-            params.append('limit', '100');
+            if (selectedType) params.set('type', selectedType);
+            if (searchQuery) params.set('search', searchQuery);
+            params.set('limit', '100');
 
-            const res = await fetch(`${API_URL}/events?${params}`, {
-                headers: { 'X-Assistant-ID': assistantId },
-            });
+            const res = await fetch(`${API_URL}/events?${params}`, { headers });
 
             if (!res.ok) throw new Error('Failed to fetch events');
 
@@ -93,7 +80,7 @@ export default function EventsPage() {
         } finally {
             setLoading(false);
         }
-    }, [assistantId, selectedType, searchQuery]);
+    }, [orgId, selectedType, searchQuery, orgLoading]);
 
     const fetchEventTypes = useCallback(async () => {
         try {
@@ -172,18 +159,13 @@ export default function EventsPage() {
         return '';
     };
 
-    if (!assistantId) {
+    if (orgLoading || loading) {
         return (
             <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Events</h1>
                 </div>
-                <div className="empty-state">
-                    <p>Please set your assistant ID on the dashboard first.</p>
-                    <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
-                        Go to Dashboard
-                    </Link>
-                </div>
+                <div className="loading">Loading...</div>
             </div>
         );
     }

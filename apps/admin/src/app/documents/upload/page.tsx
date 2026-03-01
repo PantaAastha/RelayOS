@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useOrg } from '@/components/OrgContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -21,7 +22,8 @@ interface SupportedTypes {
 
 export default function UploadDocumentPage() {
     const router = useRouter();
-    const [assistantId, setAssistantId] = useState('');
+    const { assistants, loading: orgLoading } = useOrg();
+    const assistantId = assistants[0]?.id || '';
     const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -35,19 +37,6 @@ export default function UploadDocumentPage() {
     const [content, setContent] = useState('');
 
     useEffect(() => {
-        // Auto-detect assistantId from first assistant
-        (async () => {
-            try {
-                const res = await fetch(`${API_URL}/assistants`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        setAssistantId(data[0].id);
-                    }
-                }
-            } catch { /* ignore */ }
-        })();
-
         // Fetch supported file types
         fetch(`${API_URL}/knowledge/upload/supported`)
             .then((res) => res.json())

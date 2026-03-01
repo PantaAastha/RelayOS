@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useOrg } from '@/components/OrgContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -12,65 +13,40 @@ interface Document {
     doc_type: string;
     chunk_count: number;
     created_at: string;
+    assistantName?: string;
 }
 
 export default function KnowledgePage() {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
-    const [assistantId, setAssistantId] = useState('');
-
-    // Auto-detect assistantId from first assistant (replaces localStorage approach)
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetch(`${API_URL}/assistants`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        setAssistantId(data[0].id);
-                    }
-                }
-            } catch { /* ignore */ }
-        })();
-    }, []);
+    const { orgId, loading: orgLoading } = useOrg();
 
     const fetchDocuments = useCallback(async () => {
-        if (!assistantId) {
-            setLoading(false);
-            return;
-        }
         try {
-            const res = await fetch(`${API_URL}/knowledge/documents`, {
-                headers: { 'X-Assistant-ID': assistantId },
-            });
+            const headers: Record<string, string> = {};
+            if (orgId) headers['X-Organization-ID'] = orgId;
+            const res = await fetch(`${API_URL}/knowledge/documents`, { headers });
             const data = await res.json();
-            setDocuments(Array.isArray(data) ? data : []);
+            setDocuments(Array.isArray(data?.documents) ? data.documents : Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch documents:', error);
         } finally {
             setLoading(false);
         }
-    }, [assistantId]);
+    }, [orgId]);
 
     useEffect(() => {
-        fetchDocuments();
-    }, [fetchDocuments]);
+        if (!orgLoading) fetchDocuments();
+    }, [orgLoading, fetchDocuments]);
 
-    if (!assistantId && !loading) {
+    if (orgLoading || loading) {
         return (
             <div className="content-area">
                 <div className="page-header">
                     <h1 className="page-title">Knowledge</h1>
-                    <p className="page-description">Manage your knowledge sources, ingestion jobs, and collections.</p>
+                    <p className="page-description">Manage your knowledge sources and documents.</p>
                 </div>
-                <div className="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                    <h3>No assistant found</h3>
-                    <p>Create an assistant from the <Link href="/assistants">Assistants</Link> page first.</p>
-                </div>
+                <div className="loading">Loading...</div>
             </div>
         );
     }
@@ -87,9 +63,7 @@ export default function KnowledgePage() {
                 </Link>
             </div>
 
-            {loading ? (
-                <div className="loading">Loading...</div>
-            ) : documents.length === 0 ? (
+            {documents.length === 0 ? (
                 <div className="empty-state">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -107,7 +81,7 @@ export default function KnowledgePage() {
                         <thead>
                             <tr>
                                 <th>Title</th>
-                                <th>Source</th>
+                                <th>Assistant</th>
                                 <th>Type</th>
                                 <th>Chunks</th>
                                 <th>Added</th>
@@ -118,7 +92,7 @@ export default function KnowledgePage() {
                                 <tr key={doc.id}>
                                     <td style={{ fontWeight: 500 }}>{doc.title}</td>
                                     <td>
-                                        <span className="badge badge-success">Upload</span>
+                                        <span className="badge badge-success">{doc.assistantName || 'Upload'}</span>
                                     </td>
                                     <td>{doc.doc_type || '—'}</td>
                                     <td>{doc.chunk_count ?? '—'}</td>

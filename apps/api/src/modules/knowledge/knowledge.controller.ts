@@ -13,9 +13,11 @@ import {
     UploadedFile,
     UploadedFiles,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { KnowledgeService } from './knowledge.service';
 import { FileExtractorService } from './file-extractor.service';
+import { AssistantsService } from '../assistants/assistants.service';
 
 interface IngestDocumentDto {
     title: string;
@@ -29,6 +31,7 @@ export class KnowledgeController {
     constructor(
         private knowledgeService: KnowledgeService,
         private fileExtractorService: FileExtractorService,
+        private assistantsService: AssistantsService,
     ) { }
 
     /**
@@ -65,18 +68,37 @@ export class KnowledgeController {
     }
 
     /**
-     * GET /knowledge/documents - List all documents for a tenant
+     * GET /knowledge/documents - List documents
+     * Supports: X-Organization-ID (org-scoped) or X-Assistant-ID (assistant-scoped)
      */
-    @Get('documents')
+    @SkipThrottle()
     @Get('documents')
     async listDocuments(@Headers() headers: Record<string, string>) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+
+        if (orgId) {
+            // Org-scoped: list documents across all assistants
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(orgId);
+            const documents = await this.knowledgeService.getDocumentsByOrg(assistantIds);
+            return { documents };
         }
 
-        const documents = await this.knowledgeService.getDocuments(assistantId);
-        return { documents };
+        if (assistantId) {
+            // Assistant-scoped (legacy / widget)
+            const documents = await this.knowledgeService.getDocuments(assistantId);
+            return { documents };
+        }
+
+        // Fallback: auto-detect org from first assistant
+        const defaultOrgId = await this.assistantsService.getDefaultOrgId();
+        if (defaultOrgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(defaultOrgId);
+            const documents = await this.knowledgeService.getDocumentsByOrg(assistantIds);
+            return { documents };
+        }
+
+        return { documents: [] };
     }
 
     /**

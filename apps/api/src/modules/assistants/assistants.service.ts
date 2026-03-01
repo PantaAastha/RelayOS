@@ -206,6 +206,38 @@ export class AssistantsService {
         return data || [];
     }
 
+    /**
+     * Get all assistant IDs for an organization.
+     * Used by org-scoped queries to fetch data across all assistants.
+     */
+    async getAssistantIdsForOrg(organizationId: string): Promise<string[]> {
+        const { data, error } = await this.supabase
+            .from('assistants')
+            .select('id')
+            .eq('organization_id', organizationId);
+
+        if (error) {
+            throw new Error(`Failed to fetch assistant IDs: ${error.message}`);
+        }
+
+        return (data || []).map(a => a.id);
+    }
+
+    /**
+     * Get the default org ID (for single-org mode).
+     * Returns the org of the first assistant found.
+     */
+    async getDefaultOrgId(): Promise<string | null> {
+        const { data, error } = await this.supabase
+            .from('assistants')
+            .select('organization_id')
+            .limit(1)
+            .single();
+
+        if (error || !data) return null;
+        return data.organization_id;
+    }
+
     async deleteAssistant(id: string): Promise<void> {
         // Proper FK-aware deletion order:
         // 1. Get all conversation IDs first (needed for events deletion)

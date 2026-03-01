@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Headers, BadRequestException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AssistantsService } from './assistants.service';
 
 @Controller('assistants')
@@ -13,6 +14,7 @@ export class AssistantsController {
         return this.assistantsService.createAssistant(body);
     }
 
+    @SkipThrottle()
     @Get()
     async listAssistants(@Headers('x-organization-id') organizationId?: string) {
         // In a real scenario, we should extract organizationId from auth token but for now we accept header or list all

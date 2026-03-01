@@ -8,16 +8,23 @@ import {
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { EventsService } from './events.service';
 import type { EventType } from './events.service';
+import { AssistantsService } from '../assistants/assistants.service';
 
 @Controller('events')
 export class EventsController {
-    constructor(private eventsService: EventsService) { }
+    constructor(
+        private eventsService: EventsService,
+        private assistantsService: AssistantsService,
+    ) { }
 
     /**
      * GET /events - List events with optional filters
+     * Supports: X-Organization-ID (org-scoped) or X-Assistant-ID (assistant-scoped)
      */
+    @SkipThrottle()
     @Get()
     async listEvents(
         @Headers() headers: Record<string, string>,
@@ -26,10 +33,8 @@ export class EventsController {
         @Query('search') search?: string,
         @Query('limit') limit?: string,
     ) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
-        }
 
         const options: {
             eventType?: EventType;
@@ -38,24 +43,31 @@ export class EventsController {
             limit?: number;
         } = {};
 
-        if (eventType) {
-            options.eventType = eventType as EventType;
+        if (eventType) options.eventType = eventType as EventType;
+        if (since) options.since = new Date(since);
+        if (search) options.search = search;
+        if (limit) options.limit = parseInt(limit, 10);
+
+        if (orgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(orgId);
+            const events = await this.eventsService.listEventsByOrg(assistantIds, options);
+            return { events };
         }
 
-        if (since) {
-            options.since = new Date(since);
+        if (assistantId) {
+            const events = await this.eventsService.listEvents(assistantId, options);
+            return { events };
         }
 
-        if (search) {
-            options.search = search;
+        // Fallback: auto-detect org
+        const defaultOrgId = await this.assistantsService.getDefaultOrgId();
+        if (defaultOrgId) {
+            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(defaultOrgId);
+            const events = await this.eventsService.listEventsByOrg(assistantIds, options);
+            return { events };
         }
 
-        if (limit) {
-            options.limit = parseInt(limit, 10);
-        }
-
-        const events = await this.eventsService.listEvents(assistantId, options);
-        return { events };
+        return { events: [] };
     }
 
     /**
