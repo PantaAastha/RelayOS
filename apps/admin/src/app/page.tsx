@@ -38,18 +38,22 @@ export default function Dashboard() {
 
   if (orgLoading || loading) {
     return (
-      <div className="content-area">
+      <>
         <div className="page-header">
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-description">Overview of your AI support copilot</p>
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-description">Overview of your AI support copilot</p>
+          </div>
         </div>
-        <div className="loading">Loading...</div>
-      </div>
+        <div className="page-body">
+          <div className="loading">Loading...</div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="content-area">
+    <>
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
@@ -79,54 +83,62 @@ export default function Dashboard() {
         </div>
 
         {/* Quick actions */}
-        <div style={{ marginTop: '8px' }}>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase' as const, color: 'var(--t2)', marginBottom: '12px' }}>
+        <div className="studio-section">
+          <div className="studio-section-title">
             Quick Actions
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          <div className="card-grid">
             <Link href="/assistants" style={{ textDecoration: 'none' }}>
-              <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div className="coll-icon" style={{ background: 'var(--mint1)', color: 'var(--mint)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
-                  </svg>
-                </div>
-                <div className="coll-info">
-                  <div className="coll-nm">Assistants</div>
-                  <div className="coll-mt">Manage & configure</div>
+              <div className="card">
+                <div className="card-top">
+                  <div className="card-header">
+                    <div className="card-icon ci-support">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="card-name">Assistants</div>
+                  <div className="card-desc">Manage & configure</div>
                 </div>
               </div>
             </Link>
+
             <Link href="/knowledge" style={{ textDecoration: 'none' }}>
-              <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div className="coll-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-                  </svg>
-                </div>
-                <div className="coll-info">
-                  <div className="coll-nm">Knowledge</div>
-                  <div className="coll-mt">Upload documents</div>
+              <div className="card">
+                <div className="card-top">
+                  <div className="card-header">
+                    <div className="card-icon ci-docs">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="card-name">Knowledge</div>
+                  <div className="card-desc">Upload documents</div>
                 </div>
               </div>
             </Link>
+
             <Link href="/quality" style={{ textDecoration: 'none' }}>
-              <div className="coll-card" style={{ cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div className="coll-icon" style={{ background: 'var(--purple1)', color: 'var(--purple)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                    <path d="M18 20V10M12 20V4M6 20v-6" />
-                  </svg>
-                </div>
-                <div className="coll-info">
-                  <div className="coll-nm">Quality</div>
-                  <div className="coll-mt">Review conversations</div>
+              <div className="card">
+                <div className="card-top">
+                  <div className="card-header">
+                    <div className="card-icon ci-onboard">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M18 20V10M12 20V4M6 20v-6" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="card-name">Quality</div>
+                  <div className="card-desc">Review conversations</div>
                 </div>
               </div>
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

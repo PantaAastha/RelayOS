@@ -106,7 +106,7 @@
 - [x] 🔴 **Remove `Events` route from sidebar** — accessible from Settings or Trace Viewer, not a nav item
 - [x] 🔴 Sidebar nav items (exactly 6): Dashboard · Assistants · Knowledge · Quality · Integrations · Settings
 - [x] 🔴 All sidebar pages use `orgId` (from context) instead of `assistantId` in API calls
-- [ ] 🔴 Dashboard: remove "Current Assistant" switcher, show org-aggregate KPIs across all assistants
+- [x] 🔴 Dashboard: remove "Current Assistant" switcher, show org-aggregate KPIs across all assistants
 
 ### Database (no schema changes needed)
 - The `assistants` table already has `organization_id` FK

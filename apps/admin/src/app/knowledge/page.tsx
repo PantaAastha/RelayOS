@@ -41,70 +41,78 @@ export default function KnowledgePage() {
 
     if (orgLoading || loading) {
         return (
-            <div className="content-area">
+            <>
                 <div className="page-header">
-                    <h1 className="page-title">Knowledge</h1>
-                    <p className="page-description">Manage your knowledge sources and documents.</p>
+                    <div>
+                        <h1 className="page-title">Knowledge</h1>
+                        <p className="page-description">Manage your knowledge sources and documents.</p>
+                    </div>
                 </div>
-                <div className="loading">Loading...</div>
-            </div>
+                <div className="page-body">
+                    <div className="loading">Loading...</div>
+                </div>
+            </>
         );
     }
 
     return (
-        <div className="content-area">
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <>
+            <div className="page-header">
                 <div>
                     <h1 className="page-title">Knowledge</h1>
                     <p className="page-description">Manage your knowledge sources and documents.</p>
                 </div>
-                <Link href="/documents/upload" className="btn btn-primary">
-                    Upload Documents
-                </Link>
-            </div>
-
-            {documents.length === 0 ? (
-                <div className="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                    <h3>No documents yet</h3>
-                    <p>Upload your first document to start building your knowledge base.</p>
-                    <Link href="/documents/upload" className="btn btn-primary" style={{ marginTop: '16px', display: 'inline-flex' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                    <Link href="/knowledge/upload" className="btn btn-primary">
                         Upload Documents
                     </Link>
                 </div>
-            ) : (
-                <div className="table-container">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Assistant</th>
-                                <th>Type</th>
-                                <th>Chunks</th>
-                                <th>Added</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {documents.map((doc) => (
-                                <tr key={doc.id}>
-                                    <td style={{ fontWeight: 500 }}>{doc.title}</td>
-                                    <td>
-                                        <span className="badge badge-success">{doc.assistantName || 'Upload'}</span>
-                                    </td>
-                                    <td>{doc.doc_type || '—'}</td>
-                                    <td>{doc.chunk_count ?? '—'}</td>
-                                    <td style={{ color: 'var(--t3)', fontSize: '12px' }}>
-                                        {new Date(doc.created_at).toLocaleDateString()}
-                                    </td>
+            </div>
+
+            <div className="page-body">
+                {documents.length === 0 ? (
+                    <div className="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
+                        <h3>No documents yet</h3>
+                        <p>Upload your first document to start building your knowledge base.</p>
+                        <Link href="/knowledge/upload" className="btn btn-primary" style={{ marginTop: '16px' }}>
+                            Upload Documents
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="table-container">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Assistant</th>
+                                    <th>Type</th>
+                                    <th>Chunks</th>
+                                    <th>Added</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
+                            </thead>
+                            <tbody>
+                                {documents.map((doc) => (
+                                    <tr key={doc.id}>
+                                        <td style={{ fontWeight: 500 }}>{doc.title}</td>
+                                        <td>
+                                            <span className="chip chip-support">{doc.assistantName || 'Upload'}</span>
+                                        </td>
+                                        <td>{doc.doc_type || '—'}</td>
+                                        <td>{doc.chunk_count ?? '—'}</td>
+                                        <td>
+                                            {new Date(doc.created_at).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
