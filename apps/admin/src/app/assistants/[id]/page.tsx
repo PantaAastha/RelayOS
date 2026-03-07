@@ -91,8 +91,12 @@ export default function StudioPage() {
             if (data.config) {
                 setWidgetTheme({
                     primaryColor: data.config.primaryColor || defaultWidgetTheme.primaryColor,
+                    backgroundColor: data.config.backgroundColor || defaultWidgetTheme.backgroundColor,
+                    textColor: data.config.textColor || defaultWidgetTheme.textColor,
                     widgetTitle: data.config.widgetTitle || defaultWidgetTheme.widgetTitle,
-                    placement: defaultWidgetTheme.placement,
+                    avatarIcon: data.config.avatarIcon || defaultWidgetTheme.avatarIcon,
+                    placement: data.config.placement || defaultWidgetTheme.placement,
+                    widgetMode: data.config.widgetMode || defaultWidgetTheme.widgetMode,
                 });
             }
         } catch {
@@ -115,7 +119,16 @@ export default function StudioPage() {
                     assistant_type: assistantType,
                     welcome_message: welcomeMessage,
                     starter_questions: starterQuestions.filter((q) => q.label.trim()),
-                    config: { ...assistant?.config, widgetTitle: widgetTheme.widgetTitle, primaryColor: widgetTheme.primaryColor },
+                    config: {
+                        ...assistant?.config,
+                        widgetTitle: widgetTheme.widgetTitle,
+                        avatarIcon: widgetTheme.avatarIcon,
+                        primaryColor: widgetTheme.primaryColor,
+                        backgroundColor: widgetTheme.backgroundColor,
+                        textColor: widgetTheme.textColor,
+                        placement: widgetTheme.placement,
+                        widgetMode: widgetTheme.widgetMode,
+                    },
                 }),
             });
             if (!res.ok) throw new Error('Failed');
@@ -148,12 +161,12 @@ export default function StudioPage() {
 
     const renderTab = () => {
         switch (tab) {
-            case 'persona': return <PersonaTab persona={persona} welcomeMessage={welcomeMessage} starterQuestions={starterQuestions} onPersonaChange={setPersona} onWelcomeMessageChange={setWelcomeMessage} onStarterQuestionsChange={setStarterQuestions} />;
+            case 'persona': return <PersonaTab persona={persona} onPersonaChange={setPersona} />;
             case 'behavior': return <BehaviorTab assistantType={assistantType} onAssistantTypeChange={setAssistantType} delegationConfig={delegationConfig} onDelegationConfigChange={setDelegationConfig} />;
             case 'knowledge': return <KnowledgeTab />;
             case 'handoff': return <HandoffTab config={handoffConfig} onChange={setHandoffConfig} />;
-            case 'widget': return <WidgetThemeTab config={widgetTheme} onChange={setWidgetTheme} />;
-            case 'deploy': return <DeployTab assistantId={assistantId} apiUrl={API_URL} domainAllowlist={domainAllowlist} onDomainAllowlistChange={setDomainAllowlist} />;
+            case 'widget': return <WidgetThemeTab config={widgetTheme} onChange={setWidgetTheme} welcomeMessage={welcomeMessage} onWelcomeMessageChange={setWelcomeMessage} starterQuestions={starterQuestions} onStarterQuestionsChange={setStarterQuestions} />;
+            case 'deploy': return <DeployTab assistantId={assistantId} apiUrl={API_URL} domainAllowlist={domainAllowlist} onDomainAllowlistChange={setDomainAllowlist} widgetTheme={widgetTheme} />;
         }
     };
 

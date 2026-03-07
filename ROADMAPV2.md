@@ -2,7 +2,7 @@
 
 > **Goal:** Build the most capable multi-assistant AI platform for B2B teams.
 > **Principles:** Ship in demo-ready slices · Measure everything · Premium UX from day one.
-> **Updated:** February 25, 2026 — reconciled with UI/UX Vision doc + Trust Architecture layer inserted.
+> **Updated:** March 4, 2026 — reconciled with UI/UX Vision + Trust Architecture + Architecture Rules (ARCHITECTURE.md).
 
 ## Priority Legend
 - 🔴 Critical (must ship for impressive demo)
@@ -62,8 +62,8 @@
 **Outcome:** RelayOS feels like a product, not a set of features. Every screen has a place.
 
 ### Navigation & Information Architecture
-- [x] 🔴 Restructure sidebar nav: **Dashboard · Assistants · Knowledge · Quality · Integrations · Settings**
-- [x] 🔴 "Single-org mode" (default) + optional org switcher (feature flag for multi-tenant deployments)
+- [x] 🔴 Restructure sidebar nav to exactly these 6 items in this order: **Dashboard · Assistants · Knowledge · Quality · Integrations · Settings** — no Conversations, no Events, nothing else
+- [x] 🔴 Single-org mode — no org switcher anywhere in the UI (single org is the permanent default)
 - [x] 🔴 Consistent UI primitive library: cards, tables, status chips, empty states, skeleton loaders
 - [x] 🔴 Empty states must always include a CTA — no dead ends anywhere in the product
 
@@ -86,41 +86,6 @@
 
 ---
 
-## Milestone 0.5 — Org-Scoped Navigation (🔴)
-**Outcome:** Every sidebar view shows org-wide data. No "current assistant" concept at the nav level. Aligns codebase with [`docs/Notes.md`](file:///Users/aasthapanta/PersonalProject/Nov2025-Dec2025-Jan2026-Feb2026/RelayOS/docs/Notes.md) navigation spec.
-
-> **Context:** The tenant → assistant migration left all data tables (`documents`, `conversations`, `events`, `messages`, `grading`, `feedback`) scoped to `assistant_id`. Every admin page requires `X-Assistant-ID` header. The frontend hacks around this by auto-fetching the first assistant — which triggers 429 rate limits and only shows one assistant's data. The sidebar has 7 items instead of the canonical 6.
-
-### Backend — Org-Scoped API Endpoints
-- [x] 🔴 **`GET /knowledge/documents?orgId=`** — list documents across all assistants in org (`WHERE assistant_id IN (SELECT id FROM assistants WHERE organization_id = ?)`)
-- [x] 🔴 **`GET /conversation?orgId=`** — list conversations across all assistants, include `assistantName` in response
-- [x] 🔴 **`GET /events?orgId=`** — list events across all assistants
-- [x] 🔴 **`GET /stats?orgId=`** — aggregate KPIs (docs, conversations, messages) across all assistants
-- [x] 🔴 Keep existing `X-Assistant-ID`-scoped endpoints for widget/studio use — org endpoints are additive, not replacements
-- [x] 🔴 `@SkipThrottle()` on `GET /assistants`, `GET /organizations` — admin listing endpoints are not abuse vectors
-- [x] 🔴 Bump default rate limit from 10 → 60 req/min (current value was "for testing")
-
-### Frontend — Shared Context & Nav Cleanup
-- [x] 🔴 **`AssistantContext` provider** — single `GET /assistants` call at app mount, shared across all pages via React context. Eliminates 6 redundant API calls and fixes 429 errors.
-- [x] 🔴 **Remove `Conversations` from sidebar nav** — accessible as sub-page of Quality (`/quality/conversations`) per Notes.md
-- [x] 🔴 **Remove `Events` route from sidebar** — accessible from Settings or Trace Viewer, not a nav item
-- [x] 🔴 Sidebar nav items (exactly 6): Dashboard · Assistants · Knowledge · Quality · Integrations · Settings
-- [x] 🔴 All sidebar pages use `orgId` (from context) instead of `assistantId` in API calls
-- [x] 🔴 Dashboard: remove "Current Assistant" switcher, show org-aggregate KPIs across all assistants
-
-### Database (no schema changes needed)
-- The `assistants` table already has `organization_id` FK
-- Org-scoped queries JOIN through: `WHERE assistant_id IN (SELECT id FROM assistants WHERE organization_id = ?)`
-- No migrations required — purely query-level change
-
-**Acceptance**
-- Knowledge page shows documents across all assistants (not just the first one)
-- Dashboard shows aggregate stats without requiring a "current assistant"
-- Navigating rapidly between pages produces no 429 errors
-- Sidebar has exactly 6 items matching Notes.md spec
-
----
-
 ## Milestone 1 — Assistant Studio (🔴)
 **Outcome:** Create → configure → test → deploy assistants from one place. The "wow" screen.
 
@@ -137,14 +102,15 @@
 - [x] 🔴 Smooth panel transitions between tabs (no jarring reloads)
 
 ### Studio Tabs
-1. **Persona**
-   - [x] 🔴 Tone, boundaries, welcome message, starter questions
-   - [x] 🔴 Refine existing config page into this tab
+1. **Persona** *(identity only — no widget config here)*
+   - [x] 🔴 Persona name, tone, voice / style
+   - [x] 🔴 Boundaries (what the assistant won't do)
+   - [x] 🔴 Custom instructions (how the assistant should behave)
 
 2. **Behavior** *(includes Delegation Control Surface — Trust Architecture)*
    - [x] 🔴 Template type selector: Support (reactive) / Docs (reference) / Onboarding (guided)
    - [x] 🔴 Behavior mode config per type
-   - [x] 🔴 **Delegation controls** — operator-facing surface for defining the boundary between autonomous and escalated decisions:
+   - [] 🔴 **Delegation controls** — operator-facing surface for defining the boundary between autonomous and escalated decisions:
      - Confidence threshold for autonomous answers (below threshold → escalate or refuse, not silently hallucinate)
      - Actions allowed without user confirmation (read-only operations)
      - Actions that always require user confirmation before execution (writes, ticket creation, DB mutations)
@@ -152,30 +118,52 @@
    - [x] 🟡 "Autonomy level" summary chip (Conservative / Balanced / Proactive) derived from delegation config — visible on Assistants list as an operator trust signal
 
 3. **Knowledge**
-   - [x] 🔴 Show attached collections + document count (Collections built in M3)
+   - [ ] 🔴 Show attached collections + document count (Collections built in M3)
+   - [ ] 🔴 Mount / unmount collections to this assistant
+   - [ ] 🔴 Empty state when no collections exist: *"No collections yet. Create one in [Knowledge →]"*
+   - **Never** shows upload UI or sync jobs — those live in sidebar Knowledge only
 
 4. **Handoff**
-   - [x] 🔴 n8n workflow URL input + trigger thresholds
-   - [ ] 🟡 Webhook signing config
+   - [ ] 🔴 Workflow selector — dropdown populated from n8n workflows registered in Integrations (M6); **never** a free-text webhook URL field
+   - [ ] 🔴 Trigger threshold config (confidence level that triggers handoff)
+   - [ ] 🔴 Handoff message config
+   - [ ] 🔴 Empty state when no integration connected: *"No workflows available. Connect n8n in [Integrations →]"*
 
-5. **Widget Theme**
-   - [x] 🔴 Color tokens, title, icon, widget placement
-   - [ ] 🔴 Live preview reflects theme changes in real time
+5. **Widget** *(everything the end-user sees in the widget surface)*
+   - [x] 🔴 Welcome message — the first message shown when the widget opens
+   - [x] 🔴 Starter questions — suggested prompts shown before the user types
+   - [x] 🔴 Color tokens (primary, background, text)
+   - [x] 🔴 Widget title and avatar icon
+   - [x] 🔴 Position: bottom-right / bottom-left
+   - [x] 🔴 Widget config is applied at embed time — a red bottom-left widget in config renders as a red bottom-left widget on the client's platform
+   - [x] 🟡 **Widget mode selector** (extensibility foundation):
+     - `popup` (default) — standard corner chat bubble
+     - `side-panel` — slides in from the right, better for long Docs responses
+     - `floating-avatar` — persistent avatar that follows the user, best for Onboarding guided flows
+     - `inline` — embedded directly in the page at a specified container
+   - [ ] 🟢 Mode-specific config options exposed per selected mode (e.g. avatar appearance for floating-avatar, panel width for side-panel)
 
 6. **Deploy**
    - [x] 🔴 Embed snippet generator with one-click copy + "Copied" toast
    - [x] 🔴 Domain allowlist input
    - [x] 🟡 Environment tips (staging vs production)
 
+7. **Widget Frontend Implementation** (Client-side matching)
+   - [ ] 🟡 Parse widget config (`data-mode`, `data-placement`, theme colors) from the embed `<script>` tag
+   - [ ] 🟡 Implement `popup` layout (standard chat bubble)
+   - [ ] 🟡 Implement `side-panel` layout (edge-anchored drawer)
+   - [ ] 🟡 Implement `floating-avatar` layout (persistent orb)
+   - [ ] 🟡 Implement `inline` layout (embedded in page flow)
+
 ### Live Preview Panel (must-have)
-- [ ] 🔴 State sync — preview reflects current unsaved config on every change, not last saved state (requires ephemeral config endpoint that accepts a transient config payload without persisting it)
-- [ ] 🔴 Real inference — preview makes actual backend API calls using current unsaved config, not simulated or mocked responses; real RAG retrieval, real grading, real citations
-- [ ] 🔴 Conversation persistence — history preserved while switching between Studio tabs; cleared only on navigating away from Studio entirely
+- [ ] 🔴 **State sync** — preview reflects current unsaved config on every change, not last saved state (requires ephemeral config endpoint that accepts a transient config payload without persisting it)
+- [ ] 🔴 **Real inference** — preview makes actual backend API calls using current unsaved config, not simulated or mocked responses; real RAG retrieval, real grading, real citations
+- [ ] 🔴 **Conversation persistence** — history preserved while switching between Studio tabs; cleared only on navigating away from Studio entirely
 - [ ] 🔴 Streaming responses with typing indicator
 - [ ] 🔴 Citations UI with expand/collapse animation
 - [ ] 🔴 Confidence indicator (badge tied to SUPPORTED / PARTIAL / UNSUPPORTED) — framed as a trust signal, not a debug label
 - [ ] 🔴 **Delegation boundary indicator** — when a response would have triggered escalation or refusal under current delegation config, show why (low confidence / hard refusal / action requires confirmation)
-- [ ] 🔴 "Simulate context" toggle: URL / section / user plan inputs
+- [ ] 🔴 "Simulate context" toggle: URL / section / user plan inputs — changing context re-runs the last query automatically
 - [ ] 🔴 "Open trace" link after each preview response (links to Trace Viewer, M4)
 - [ ] 🟡 Refusal behavior visible in preview (persona boundary enforcement)
 
@@ -213,41 +201,45 @@
 ## Milestone 3 — KnowledgeOps MVP (🔴)
 **Outcome:** Upload + manage knowledge with collections and retrieval scoping.
 
-> **Note (from M0):** The current `/knowledge` page is a bridge placeholder that does not yet display seeded or uploaded documents. This milestone should replace it with the full Sources, Ingestion Jobs, and Collections UI, including proper API integration for listing and managing documents.
-
-> **Design note — Sidebar Knowledge vs Studio Knowledge tab:**
+> **Sidebar Knowledge vs Studio Knowledge tab — read this before implementing either:**
 >
-> **Sidebar Knowledge (this milestone)** is the operator-level content management surface. Upload documents, monitor sync jobs, create collections, manage sources. It's org-scoped — all documents and collections across the entire organization regardless of which assistant they're attached to. Think of it as **the library**.
+> These are two different surfaces with different scopes and different purposes. Never mix them.
 >
-> **Studio Knowledge tab** is assistant-scoped configuration. It only shows which collections are mounted to *this specific assistant* and lets you attach or detach them. No document management — just pointing the assistant at collections that already exist. Think of it as **the reading list** for one assistant.
+> | | Sidebar Knowledge (`/knowledge`) | Studio Knowledge tab |
+> |---|---|---|
+> | **Scope** | Org-wide | This assistant only |
+> | **Purpose** | Create and manage content | Mount collections to this assistant |
+> | **What you do here** | Upload docs, monitor sync jobs, create collections | Attach/detach collections, see mounted doc count |
+> | **What you never do here** | Mount to a specific assistant | Upload docs, create collections, view sync jobs |
+> | **Analogy** | The library | The assistant's reading list |
 >
-> The workflow flows in one direction:
+> **The flow is always one direction:**
 > ```
-> Sidebar Knowledge               Studio Knowledge Tab
-> (create & manage)         →     (mount to assistant)
->
-> Upload docs                     Attach "Getting Started" collection
-> Create collections              Attach "Changelog" collection
-> Monitor sync jobs               ── assistant can now only retrieve
-> Manage sources                     from these two collections ──
+> Sidebar Knowledge (create)  →  Studio Knowledge tab (mount)
+> Upload docs                      Attach "Getting Started" collection
+> Create "Getting Started"         Assistant can now only retrieve
+> collection                       from mounted collections
 > ```
-> A document never gets uploaded in Studio, and collection mounting never happens in the sidebar.
 
-### Sources Page
+### Sidebar Knowledge — Three Sub-pages
+
+**1. Sources** (`/knowledge/sources`)
 - [ ] 🔴 Source cards: connection status, last sync, docs count, chunks count, last error
+- [ ] 🔴 Upload new documents (PDF / MD / TXT) — upload lives here, not in Studio
 - [ ] 🔴 "Sync now" action per source
 - [ ] 🔴 Error states are actionable: sync failed → show error detail + retry CTA
 
-### Ingestion Jobs Page (CI-style)
-- [ ] 🔴 Job list: status chip (queued / running / failed / succeeded), duration, doc/chunk counts
+**2. Ingestion Jobs** (`/knowledge/jobs`)
+- [ ] 🔴 CI-style job list: status chip (queued / running / failed / succeeded), duration, doc/chunk counts
 - [ ] 🔴 Expandable error logs per job
 - [ ] 🔴 Status chips animate on state transitions
 
-### Collections (New)
-- [ ] 🔴 Collections page: create, list, edit collections
-- [ ] 🔴 Add documents/pages to a collection
-- [ ] 🔴 "Mount" collection to one or more assistants
-- [ ] 🔴 Retrieval enforcement: assistant only retrieves chunks from mounted collections
+**3. Collections** (`/knowledge/collections`)
+- [ ] 🔴 Collections list: create, edit, delete collections
+- [ ] 🔴 Add documents to a collection
+- [ ] 🔴 See which assistants each collection is mounted to
+- [ ] 🔴 "Mount to assistant" action from collection detail (convenience shortcut — mounting can also be done from Studio)
+- [ ] 🔴 Retrieval enforcement: assistant only retrieves chunks from its mounted collections
 - [ ] 🔴 New schema: `collections`, `collection_documents`, `assistant_collections`
 
 ### Connectors (Deferred to V3)
@@ -257,8 +249,10 @@
 - [ ] 🟢 Confluence
 
 **Acceptance**
-- Demo: Upload docs → create collection → mount to assistant → preview answer with scoped citations
+- Demo: Upload docs in Sources → create collection in Collections → mount to assistant in Studio Knowledge tab → preview answer with scoped citations
 - Retrieval is enforced: assistant only sees docs in its mounted collections
+- Upload UI exists only in Sources — never in Studio
+- Studio Knowledge tab shows empty state with link to `/knowledge/collections` when no collections exist
 
 ---
 
@@ -286,6 +280,12 @@
 - [ ] 🔴 Top queries list
 - [ ] 🔴 Low-confidence queries — "gap list" for knowledge improvement
 - [ ] 🟡 Most cited sources
+
+### Conversations (`/quality/conversations`) — sub-page, NOT a nav item
+- [ ] 🔴 Filterable conversation log: by assistant / date / grade / handoff status
+- [ ] 🔴 One-click → Trace Viewer per message
+- [ ] 🔴 Accessible from Quality page and Dashboard recent activity feed
+- **Never** appears as a top-level sidebar nav item
 
 ### Trace Viewer Lite (per message — Trust Transparency Layer)
 - [ ] 🔴 Timeline view: input + context snapshot → rewrite → retrieval → rerank → generation → grading
@@ -337,9 +337,11 @@
 
 > Previously: Agentic Rails (M6). Expanded to match Integrations nav item from UI/UX Vision.
 
-### Integrations Page (New First-Class Surface)
-- [ ] 🟡 Integrations list: installed + available connectors with status chips
-- [ ] 🟡 n8n: connection status, active workflows, last trigger timestamp
+### Integrations Page (Org-level — configured here, referenced in Studio)
+> This is where n8n is connected and workflows are registered. The Studio Handoff tab depends on this — it only selects from workflows registered here. Configure the connection once at org level; all assistants share it.
+
+- [ ] 🟡 n8n connection: webhook URL input, test connection, connection status — **this is the only place webhook URL is configured**
+- [ ] 🟡 Workflow list: registered workflows with name, status, last trigger timestamp
 - [ ] 🟡 Webhook log: recent triggers, payloads, failure states
 - [ ] 🟢 Connector marketplace placeholder (Notion, Slack, Zendesk — V3 roadmap)
 
@@ -392,7 +394,7 @@
 - All delegation configuration for an assistant is findable in one place in Studio
 
 ---
-## Milestone 7 — Demo World (🔴 to sell + interview)
+## Milestone 7 — Demo World (🔴)
 **Outcome:** A public "Acme SaaS" multi-context demo that tells the full product story in under 10 minutes.
 
 - [ ] 🔴 Public demo site with 3 distinct assistants (different styling, behavior, persona)
@@ -475,5 +477,6 @@ M9 (White-label — per-client deployment phase)
 - Micro-interactions (animations, toasts, skeleton loaders) are first-class acceptance criteria in M0 and M1, not afterthoughts
 - The 7-step demo path (M7) is the forcing function for the whole roadmap — if a feature doesn't contribute to that path, it can wait
 - **Trust Architecture principle:** every assistant deployment is implicitly a delegation decision. RelayOS makes those decisions explicit, configurable, and auditable. Trust signals (confidence, citations, action receipts, trace) are not debug features — they are product features. Design them for operators and end-users, not developers.
+- **Architecture rules** (see `ARCHITECTURE.md`): sidebar is always org-scoped; Studio is the only assistant-scoped surface; Conversations lives under Quality not the sidebar; Events is not a nav item; n8n is configured in Integrations only — never in the Handoff tab.
 
-*Last updated: February 25, 2026*
+*Last updated: March 4, 2026*

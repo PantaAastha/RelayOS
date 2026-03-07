@@ -3,14 +3,17 @@
 import { useState } from 'react';
 import { useToast } from '@/components/Toast';
 
+import { WidgetThemeConfig } from './WidgetThemeTab';
+
 interface DeployTabProps {
     assistantId: string;
     apiUrl: string;
     domainAllowlist: string;
     onDomainAllowlistChange: (domains: string) => void;
+    widgetTheme: WidgetThemeConfig;
 }
 
-export default function DeployTab({ assistantId, apiUrl, domainAllowlist, onDomainAllowlistChange }: DeployTabProps) {
+export default function DeployTab({ assistantId, apiUrl, domainAllowlist, onDomainAllowlistChange, widgetTheme }: DeployTabProps) {
     const { addToast } = useToast();
     const [copied, setCopied] = useState(false);
 
@@ -19,6 +22,12 @@ export default function DeployTab({ assistantId, apiUrl, domainAllowlist, onDoma
   src="${apiUrl.replace('/api', '')}/widget.js"
   data-assistant-id="${assistantId}"
   data-api-url="${apiUrl}"
+  data-mode="${widgetTheme.widgetMode}"
+  data-placement="${widgetTheme.placement}"
+  data-primary-color="${widgetTheme.primaryColor}"
+  data-background-color="${widgetTheme.backgroundColor}"
+  data-text-color="${widgetTheme.textColor}"
+  data-title="${widgetTheme.widgetTitle.replace(/"/g, '&quot;')}"${widgetTheme.avatarIcon ? `\n  data-avatar="${widgetTheme.avatarIcon.replace(/"/g, '&quot;')}"` : ''}
   async
 ></script>`;
 
