@@ -27,7 +27,7 @@ export default function DeployTab({ assistantId, apiUrl, domainAllowlist, onDoma
   data-primary-color="${widgetTheme.primaryColor}"
   data-background-color="${widgetTheme.backgroundColor}"
   data-text-color="${widgetTheme.textColor}"
-  data-title="${widgetTheme.widgetTitle.replace(/"/g, '&quot;')}"${widgetTheme.avatarIcon ? `\n  data-avatar="${widgetTheme.avatarIcon.replace(/"/g, '&quot;')}"` : ''}
+  data-title="${widgetTheme.widgetTitle.replace(/"/g, '&quot;')}"${widgetTheme.avatarIcon ? `\n  data-avatar="${widgetTheme.avatarIcon.replace(/"/g, '&quot;')}"` : ''}${widgetTheme.widgetMode === 'side-panel' ? `\n  data-side-panel-behavior="${widgetTheme.sidePanelBehavior || 'push'}"\n  data-side-panel-width="${widgetTheme.sidePanelWidth || 'standard'}"\n  data-side-panel-trigger="${widgetTheme.sidePanelTrigger || 'handle'}"` : ''}${widgetTheme.widgetMode === 'floating-avatar' ? `\n  data-avatar-size="${widgetTheme.avatarSize || 'medium'}"\n  data-avatar-animation="${widgetTheme.avatarAnimation !== false}"` : ''}
   async
 ></script>`;
 

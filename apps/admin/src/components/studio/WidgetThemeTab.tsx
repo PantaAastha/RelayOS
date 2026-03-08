@@ -7,7 +7,12 @@ export interface WidgetThemeConfig {
     widgetTitle: string;
     avatarIcon: string;
     placement: 'bottom-right' | 'bottom-left';
-    widgetMode: 'popup' | 'side-panel' | 'floating-avatar' | 'inline';
+    widgetMode: 'popup' | 'side-panel' | 'floating-avatar';
+    sidePanelBehavior?: 'push' | 'overlay';
+    sidePanelWidth?: 'narrow' | 'standard' | 'wide';
+    sidePanelTrigger?: 'handle' | 'button';
+    avatarSize?: 'medium' | 'large';
+    avatarAnimation?: boolean;
 }
 
 export const defaultWidgetTheme: WidgetThemeConfig = {
@@ -18,6 +23,11 @@ export const defaultWidgetTheme: WidgetThemeConfig = {
     avatarIcon: '',
     placement: 'bottom-right',
     widgetMode: 'popup',
+    sidePanelBehavior: 'push',
+    sidePanelWidth: 'standard',
+    sidePanelTrigger: 'handle',
+    avatarSize: 'medium',
+    avatarAnimation: true,
 };
 
 export interface StarterQuestion { label: string; message: string; }
@@ -145,8 +155,8 @@ export default function WidgetThemeTab({
 
             <div className="studio-section">
                 <div className="studio-section-title">Display Mode</div>
-                <div className="aut-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    {(['popup', 'side-panel', 'floating-avatar', 'inline'] as const).map((mode) => (
+                <div className="aut-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    {(['popup', 'side-panel', 'floating-avatar'] as const).map((mode) => (
                         <div key={mode} className={`aut-card${config.widgetMode === mode ? ' on' : ''}`}
                             onClick={() => onChange({ ...config, widgetMode: mode })}>
                             <div className="aut-lb" style={{ textTransform: 'capitalize' }}>{mode.replace('-', ' ')}</div>
@@ -154,17 +164,74 @@ export default function WidgetThemeTab({
                     ))}
                 </div>
 
-                {config.widgetMode !== 'inline' && (
-                    <div style={{ marginTop: '16px' }}>
-                        <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Placement</label>
-                        <div className="aut-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                            {(['bottom-right', 'bottom-left'] as const).map((pos) => (
-                                <div key={pos} className={`aut-card${config.placement === pos ? ' on' : ''}`}
-                                    onClick={() => onChange({ ...config, placement: pos })}>
-                                    <div className="aut-lb">{pos === 'bottom-right' ? 'Bottom Right' : 'Bottom Left'}</div>
-                                    <div className="aut-ds">Opens from the {pos === 'bottom-right' ? 'right' : 'left'} corner</div>
+                <div style={{ marginTop: '16px' }}>
+                    <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Placement</label>
+                    <div className="aut-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        {(['bottom-right', 'bottom-left'] as const).map((pos) => (
+                            <div key={pos} className={`aut-card${config.placement === pos ? ' on' : ''}`}
+                                onClick={() => onChange({ ...config, placement: pos })}>
+                                <div className="aut-lb">{pos === 'bottom-right' ? 'Bottom Right' : 'Bottom Left'}</div>
+                                <div className="aut-ds">Opens from the {pos === 'bottom-right' ? 'right' : 'left'} corner</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {config.widgetMode === 'side-panel' && (
+                    <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg2)', borderRadius: 'var(--r)' }}>
+                        <div className="studio-section-title" style={{ fontSize: '12px', marginBottom: '12px' }}>Side Panel Options</div>
+
+                        <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Behavior</label>
+                        <div className="aut-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '16px' }}>
+                            {(['push', 'overlay'] as const).map((behav) => (
+                                <div key={behav} className={`aut-card${config.sidePanelBehavior === behav || (!config.sidePanelBehavior && behav === 'push') ? ' on' : ''}`}
+                                    onClick={() => onChange({ ...config, sidePanelBehavior: behav })}>
+                                    <div className="aut-lb" style={{ textTransform: 'capitalize' }}>{behav}</div>
                                 </div>
                             ))}
+                        </div>
+
+                        <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Width</label>
+                        <div className="aut-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '16px' }}>
+                            {(['narrow', 'standard', 'wide'] as const).map((w) => (
+                                <div key={w} className={`aut-card${config.sidePanelWidth === w || (!config.sidePanelWidth && w === 'standard') ? ' on' : ''}`}
+                                    onClick={() => onChange({ ...config, sidePanelWidth: w })}>
+                                    <div className="aut-lb" style={{ textTransform: 'capitalize' }}>{w}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Trigger Style</label>
+                        <div className="aut-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                            {(['handle', 'button'] as const).map((trig) => (
+                                <div key={trig} className={`aut-card${config.sidePanelTrigger === trig || (!config.sidePanelTrigger && trig === 'handle') ? ' on' : ''}`}
+                                    onClick={() => onChange({ ...config, sidePanelTrigger: trig })}>
+                                    <div className="aut-lb" style={{ textTransform: 'capitalize' }}>{trig}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {config.widgetMode === 'floating-avatar' && (
+                    <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg2)', borderRadius: 'var(--r)' }}>
+                        <div className="studio-section-title" style={{ fontSize: '12px', marginBottom: '12px' }}>Floating Avatar Options</div>
+
+                        <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Size</label>
+                        <div className="aut-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '16px' }}>
+                            {(['medium', 'large'] as const).map((size) => (
+                                <div key={size} className={`aut-card${config.avatarSize === size || (!config.avatarSize && size === 'medium') ? ' on' : ''}`}
+                                    onClick={() => onChange({ ...config, avatarSize: size })}>
+                                    <div className="aut-lb" style={{ textTransform: 'capitalize' }}>{size}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+                            <input type="checkbox" checked={config.avatarAnimation !== false}
+                                onChange={(e) => onChange({ ...config, avatarAnimation: e.target.checked })} />
+                            <label className="flabel" style={{ margin: 0, cursor: 'pointer' }}
+                                onClick={() => onChange({ ...config, avatarAnimation: !(config.avatarAnimation !== false) })}>Enable Idle Breathing Animation</label>
                         </div>
                     </div>
                 )}
@@ -189,7 +256,7 @@ export default function WidgetThemeTab({
                     <div className="coll-info">
                         <div className="coll-nm" style={{ color: config.textColor || '#1a1a1a' }}>{config.widgetTitle || 'Chat with us'}</div>
                         <div className="coll-mt" style={{ color: config.textColor || '#1a1a1a', opacity: 0.7 }}>
-                            {config.widgetMode} • {config.widgetMode !== 'inline' ? config.placement : 'embedded'}
+                            {config.widgetMode} • {config.placement}
                         </div>
                     </div>
                 </div>

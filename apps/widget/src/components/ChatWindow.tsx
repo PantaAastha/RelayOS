@@ -21,6 +21,7 @@ interface ChatWindowProps {
     assistantId: string;
     tenantId?: string; // Deprecated
     title: string;
+    avatar?: string;
     testMode?: boolean;
     conversationId: string | null;
     messages: Message[];
@@ -29,7 +30,7 @@ interface ChatWindowProps {
     starterQuestions?: StarterQuestion[];
     onConversationStart: (id: string) => void;
     onMessagesUpdate: (messages: Message[]) => void;
-    onClose: () => void;
+    onClose?: () => void;
     onReset?: () => void;
 }
 
@@ -38,6 +39,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     assistantId,
     tenantId, // Keeping for backward compat if needed internally, but prefer assistantId
     title,
+    avatar,
     testMode,
     conversationId,
     messages,
@@ -152,7 +154,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
             {/* Header */}
             <div className="chat-header">
-                <h2>{title}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {avatar && (
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
+                            {avatar}
+                        </div>
+                    )}
+                    <h2>{title}</h2>
+                </div>
                 <div className="header-actions">
                     {onReset && (
                         <button
@@ -178,12 +187,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             <circle cx="12" cy="7" r="4" />
                         </svg>
                     </button>
-                    <button className="close-button" onClick={onClose}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
+                    {onClose && (
+                        <button className="close-button" onClick={onClose}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
             </div>
 

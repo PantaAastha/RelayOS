@@ -149,11 +149,10 @@
    - [x] 🟡 Environment tips (staging vs production)
 
 7. **Widget Frontend Implementation** (Client-side matching)
-   - [ ] 🟡 Parse widget config (`data-mode`, `data-placement`, theme colors) from the embed `<script>` tag
-   - [ ] 🟡 Implement `popup` layout (standard chat bubble)
-   - [ ] 🟡 Implement `side-panel` layout (edge-anchored drawer)
-   - [ ] 🟡 Implement `floating-avatar` layout (persistent orb)
-   - [ ] 🟡 Implement `inline` layout (embedded in page flow)
+   - [x] 🟡 Parse widget config (`data-mode`, `data-placement`, theme colors) from the embed `<script>` tag
+   - [x] 🟡 Implement `popup` layout (standard chat bubble)
+   - [x] 🟡 Implement `side-panel` layout (edge-anchored drawer)
+   - [x] 🟡 Implement `floating-avatar` layout (persistent orb)
 
 ### Live Preview Panel (must-have)
 - [ ] 🔴 **State sync** — preview reflects current unsaved config on every change, not last saved state (requires ephemeral config endpoint that accepts a transient config payload without persisting it)
@@ -174,8 +173,13 @@
 
 ---
 
-## Milestone 2 — Context Contract (🔴) + Guided Onboarding (🟡)
+## Milestone 2 — Context Contract (🔴) + Guided Onboarding & Goal Management (🟡 Template)
 **Outcome:** Assistants become context-aware. Onboarding feels meaningfully different from generic Q&A.
+
+- **Goal schema definition**
+- **LLM adherence scoring**
+- **User onboarding UI overlay**
+- **Proactive Nudges & Triggers:** Wire Floating Avatar and widget APIs to detect user flow events and display proactive conversational hooks over the avatar.
 
 ### Context Contract (🔴)
 - [ ] 🔴 Define versioned Context Schema:

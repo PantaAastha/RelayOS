@@ -9,6 +9,15 @@ interface WidgetConfig {
     tenantId?: string; // Deprecated
     position?: 'bottom-right' | 'bottom-left';
     primaryColor?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    mode?: 'popup' | 'side-panel' | 'floating-avatar';
+    sidePanelBehavior?: 'push' | 'overlay';
+    sidePanelWidth?: 'narrow' | 'standard' | 'wide';
+    sidePanelTrigger?: 'handle' | 'button';
+    avatar?: string;
+    avatarSize?: 'medium' | 'large';
+    avatarAnimation?: boolean;
     title?: string;
     testMode?: boolean;
 }
@@ -23,7 +32,19 @@ interface TenantWidgetConfig {
     welcomeMessage: string;
     starterQuestions: StarterQuestion[];
     persona: { name?: string };
-    config: { primaryColor?: string; widgetTitle?: string };
+    config: {
+        primaryColor?: string;
+        backgroundColor?: string;
+        textColor?: string;
+        widgetTitle?: string;
+        avatarIcon?: string;
+        widgetMode?: 'popup' | 'side-panel' | 'floating-avatar';
+        sidePanelBehavior?: 'push' | 'overlay';
+        sidePanelWidth?: 'narrow' | 'standard' | 'wide';
+        sidePanelTrigger?: 'handle' | 'button';
+        avatarSize?: 'medium' | 'large';
+        avatarAnimation?: boolean;
+    };
 }
 
 interface WidgetRef {
@@ -125,11 +146,44 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
 
     const position = config.position || 'bottom-right';
     const primaryColor = config.primaryColor || tenantConfig?.config?.primaryColor || '#2563eb';
+    const backgroundColor = config.backgroundColor || tenantConfig?.config?.backgroundColor || '#ffffff';
+    const textColor = config.textColor || tenantConfig?.config?.textColor || '#1f2937';
+    const mode = config.mode || tenantConfig?.config?.widgetMode || 'popup';
+    const sidePanelBehavior = config.sidePanelBehavior || tenantConfig?.config?.sidePanelBehavior || 'push';
+    const sidePanelWidth = config.sidePanelWidth || tenantConfig?.config?.sidePanelWidth || 'standard';
+    const sidePanelTrigger = config.sidePanelTrigger || tenantConfig?.config?.sidePanelTrigger || 'handle';
+    const avatar = config.avatar || tenantConfig?.config?.avatarIcon || '';
+    const avatarSize = config.avatarSize || tenantConfig?.config?.avatarSize || 'medium';
+    const avatarAnimation = config.avatarAnimation ?? tenantConfig?.config?.avatarAnimation ?? true;
 
     // Title priority: Config Prop -> Assistant Config -> Assistant Name -> Default
     const title = config.title || tenantConfig?.config?.widgetTitle || tenantConfig?.assistantName || 'Chat with us';
 
     const testMode = config.testMode || false;
+
+    // Handle Push behavior logic for side panels
+    useEffect(() => {
+        if (isOpen && mode === 'side-panel' && sidePanelBehavior === 'push') {
+            const width = sidePanelWidth === 'narrow' ? 320 : sidePanelWidth === 'wide' ? 540 : 420;
+            const prop = position === 'bottom-left' ? 'padding-left' : 'padding-right';
+
+            // To ensure the padding actively squishes content, we must enforce border-box on body
+            const originalBoxSizing = document.body.style.boxSizing;
+            document.body.style.boxSizing = 'border-box';
+            document.body.style.setProperty(prop, `${width}px`);
+            document.body.style.setProperty('transition', 'padding 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)');
+
+            return () => {
+                document.body.style.removeProperty(prop);
+                // We leave the transition so it animates back smoothly, 
+                // but realistically the user might notice a global transition change.
+                setTimeout(() => {
+                    document.body.style.removeProperty('transition');
+                    document.body.style.boxSizing = originalBoxSizing;
+                }, 350);
+            };
+        }
+    }, [isOpen, mode, sidePanelBehavior, sidePanelWidth, position]);
 
     const handleReset = () => {
         setConversationId(null);
@@ -141,7 +195,16 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
         <div
             className="relayos-widget"
             data-position={position}
-            style={{ '--primary-color': primaryColor } as React.CSSProperties}
+            data-mode={mode}
+            data-side-panel-behavior={sidePanelBehavior}
+            data-side-panel-width={sidePanelWidth}
+            data-avatar-size={avatarSize}
+            data-avatar-animation={avatarAnimation}
+            style={{
+                '--primary-color': primaryColor,
+                '--bg-color': backgroundColor,
+                '--text-color': textColor,
+            } as React.CSSProperties}
         >
             {isOpen ? (
                 <ChatWindow
@@ -149,6 +212,7 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                     assistantId={config.assistantId}
                     tenantId={config.tenantId}
                     title={title}
+                    avatar={avatar}
                     testMode={testMode}
                     conversationId={conversationId}
                     messages={messages as any}
@@ -161,7 +225,13 @@ export const Widget = forwardRef<WidgetRef, WidgetProps>(({ config }, ref) => {
                     onReset={handleReset}
                 />
             ) : (
-                <WidgetButton onClick={() => setIsOpen(true)} testMode={testMode} />
+                <WidgetButton
+                    onClick={() => setIsOpen(true)}
+                    testMode={testMode}
+                    avatar={avatar}
+                    mode={mode}
+                    sidePanelTrigger={sidePanelTrigger}
+                />
             )}
         </div>
     );

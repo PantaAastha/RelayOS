@@ -12,6 +12,15 @@ interface RelayOSConfig {
     tenantId?: string; // Reprecated: alias for assistantId
     position?: 'bottom-right' | 'bottom-left';
     primaryColor?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    mode?: 'popup' | 'side-panel' | 'floating-avatar';
+    sidePanelBehavior?: 'push' | 'overlay';
+    sidePanelWidth?: 'narrow' | 'standard' | 'wide';
+    sidePanelTrigger?: 'handle' | 'button';
+    avatar?: string;
+    avatarSize?: 'medium' | 'large';
+    avatarAnimation?: boolean;
     title?: string;
     testMode?: boolean;
 }
@@ -96,8 +105,17 @@ if (script) {
         window.RelayOS.init({
             apiUrl,
             assistantId,
-            position: (script.dataset.position as 'bottom-right' | 'bottom-left') || 'bottom-right',
+            position: (script.dataset.placement as 'bottom-right' | 'bottom-left') || (script.dataset.position as 'bottom-right' | 'bottom-left') || 'bottom-right',
             primaryColor: script.dataset.primaryColor,
+            backgroundColor: script.dataset.backgroundColor,
+            textColor: script.dataset.textColor,
+            mode: (script.dataset.mode as 'popup' | 'side-panel' | 'floating-avatar') || 'popup',
+            sidePanelBehavior: (script.dataset.sidePanelBehavior as Extract<RelayOSConfig['sidePanelBehavior'], string>) || 'push',
+            sidePanelWidth: (script.dataset.sidePanelWidth as Extract<RelayOSConfig['sidePanelWidth'], string>) || 'standard',
+            sidePanelTrigger: (script.dataset.sidePanelTrigger as Extract<RelayOSConfig['sidePanelTrigger'], string>) || 'handle',
+            avatar: script.dataset.avatar,
+            avatarSize: (script.dataset.avatarSize as Extract<RelayOSConfig['avatarSize'], string>) || 'medium',
+            avatarAnimation: script.dataset.avatarAnimation !== 'false',
             title: script.dataset.title,
             testMode: script.dataset.testMode === 'true',
         });

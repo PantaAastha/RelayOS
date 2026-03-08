@@ -97,6 +97,11 @@ export default function StudioPage() {
                     avatarIcon: data.config.avatarIcon || defaultWidgetTheme.avatarIcon,
                     placement: data.config.placement || defaultWidgetTheme.placement,
                     widgetMode: data.config.widgetMode || defaultWidgetTheme.widgetMode,
+                    sidePanelBehavior: data.config.sidePanelBehavior || defaultWidgetTheme.sidePanelBehavior,
+                    sidePanelWidth: data.config.sidePanelWidth || defaultWidgetTheme.sidePanelWidth,
+                    sidePanelTrigger: data.config.sidePanelTrigger || defaultWidgetTheme.sidePanelTrigger,
+                    avatarSize: data.config.avatarSize || defaultWidgetTheme.avatarSize,
+                    avatarAnimation: data.config.avatarAnimation ?? defaultWidgetTheme.avatarAnimation,
                 });
             }
         } catch {
@@ -128,6 +133,11 @@ export default function StudioPage() {
                         textColor: widgetTheme.textColor,
                         placement: widgetTheme.placement,
                         widgetMode: widgetTheme.widgetMode,
+                        sidePanelBehavior: widgetTheme.sidePanelBehavior,
+                        sidePanelWidth: widgetTheme.sidePanelWidth,
+                        sidePanelTrigger: widgetTheme.sidePanelTrigger,
+                        avatarSize: widgetTheme.avatarSize,
+                        avatarAnimation: widgetTheme.avatarAnimation,
                     },
                 }),
             });
