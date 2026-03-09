@@ -9,7 +9,7 @@ export default function KnowledgeLayout({ children }: { children: React.ReactNod
     return (
         <div className="studio-container">
             {/* Top bar using standard page-header structure */}
-            <div className="page-header" style={{ padding: '24px 32px' }}>
+            <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>

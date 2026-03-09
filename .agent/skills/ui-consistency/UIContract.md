@@ -91,7 +91,7 @@ Use soft, deep dark shadows to convey depth on hover or for floating elements.
 *   **Labels (`.flabel`)**: `font-size: 11px`, `font-weight: 500`, `color: var(--t2)`, `margin-bottom: 5px`.
 
 ### 4. Page Layout
-*   **Header (`.page-header`)**: The main top-level structural header of any major view (e.g. Quality, Knowledge, Settings). Uses `var(--surface)` background and a bottom border `var(--border)`. It is flexbox-aligned to handle left content (titles) and right content (actions). Standard padding is `24px 32px`.
+*   **Header (`.page-header`)**: The main top-level structural header of any major view (e.g. Quality, Knowledge, Settings). Uses `var(--surface)` background and a bottom border `var(--border)`. It is flexbox-aligned to handle left content (titles) and right content (actions). Standard padding is `18px 28px 16px`.
 *   **Header Title & Desc**: Must use strict semantic HTML inside `.page-header`.
     *   Title: `<h1 className="page-title">`. Styled to `18px`, `var(--t1)`, `700` weight, with no margin.
     *   Description: `<p className="page-description">`. Styled to `13px`, `var(--t2)`, with `margin-top: 8px` and `margin-bottom: 0`.

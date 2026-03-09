@@ -6,6 +6,7 @@ import Link from 'next/link';
 import CreateCollectionDrawer from './CreateCollectionDrawer';
 import EmptyState from '@/components/EmptyState';
 import KnowledgeHeaderPortal from '@/components/KnowledgeHeaderPortal';
+import Drawer from '@/components/Drawer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -136,15 +137,11 @@ export default function CollectionsPage() {
                                         <div className="stat-val">{col.assistantCount}</div>
                                         <div className="stat-lbl">assistants</div>
                                     </div>
-                                    <div className="stat">
-                                        <div className="stat-val trend-up">Active</div>
-                                        <div className="stat-lbl">status</div>
-                                    </div>
                                 </div>
 
                                 <div className="card-footer" style={{ justifyContent: 'flex-end' }}>
                                     <button className="studio-cta" onClick={(e) => { e.stopPropagation(); setActiveCollection(col) }}>
-                                        Manage
+                                        Open
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
                                             <line x1="7" y1="17" x2="17" y2="7" />
                                             <polyline points="7 7 17 7 17 17" />
@@ -175,6 +172,7 @@ function CollectionDetailView({ collection, orgId, onBack }: { collection: Colle
     const [items, setItems] = useState<any[]>([]);
     const [allAvailable, setAllAvailable] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const loadData = useCallback(async () => {
         if (!orgId) return;
@@ -222,15 +220,14 @@ function CollectionDetailView({ collection, orgId, onBack }: { collection: Colle
 
     return (
         <div style={{ padding: '0 28px 24px', height: '100%', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', gap: '12px', marginTop: '16px' }}>
-                <button className="more-btn" onClick={onBack} style={{ padding: '4px' }}>
+            <div style={{ padding: '0 0 16px 0', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button className="more-btn" onClick={onBack} style={{ padding: '4px' }} title="Back to Collections">
                     ←
                 </button>
-                <div>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--t2)' }}>
-                        Collections / <span style={{ color: 'var(--t1)' }}>{collection.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--t2)' }}>
+                        Collections <span style={{ margin: '0 6px' }}>/</span> <span style={{ color: 'var(--t1)' }}>{collection.name}</span>
                     </span>
-                    {collection.description && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--t2)' }}>{collection.description}</p>}
                 </div>
             </div>
 
@@ -252,9 +249,13 @@ function CollectionDetailView({ collection, orgId, onBack }: { collection: Colle
             <div className="card" style={{ padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--t2)', letterSpacing: '0.05em', margin: 0 }}>
-                        {activeTab === 'documents' ? 'Select Documents to Include' : 'Mount to Assistants'}
+                        {activeTab === 'documents' ? 'Documents in Collection' : 'Mounted to Assistants'}
                     </h3>
-                    {activeTab === 'assistants' && (
+                    {activeTab === 'documents' ? (
+                        <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+                            Add Documents
+                        </button>
+                    ) : (
                         <Link href="/" className="btn btn-secondary btn-sm">
                             Mount in Studio →
                         </Link>
@@ -262,40 +263,81 @@ function CollectionDetailView({ collection, orgId, onBack }: { collection: Colle
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {allAvailable.length === 0 ? (
+                    {items.length === 0 ? (
                         <EmptyState
-                            title={`No ${activeTab} found`}
-                            description={`No ${activeTab} available in organization or none uploaded yet.`}
+                            title={`No ${activeTab} yet`}
+                            description={
+                                activeTab === 'documents'
+                                    ? 'Add documents to this collection so assistants can retrieve them.'
+                                    : 'This collection is not mounted to any assistants.'
+                            }
+                            action={
+                                activeTab === 'documents' ? (
+                                    <button className="btn btn-secondary" onClick={() => setShowAddModal(true)}>
+                                        Add Documents
+                                    </button>
+                                ) : undefined
+                            }
                         />
                     ) : (
-                        allAvailable.map((item) => {
-                            const isAttached = items.some(i => i.id === item.id);
-                            return (
-                                <div key={item.id} style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '12px', borderRadius: '8px', border: `1px solid ${isAttached ? 'var(--mint)' : 'var(--border)'}`,
-                                    background: isAttached ? 'rgba(29, 255, 160, 0.05)' : 'var(--elevated)',
-                                    transition: 'all 0.15s'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ color: isAttached ? 'var(--mint)' : 'transparent', width: '20px', fontSize: '16px' }}>
-                                            {isAttached ? '✓' : ''}
-                                        </div>
-                                        <strong style={{ fontSize: '13px', color: 'var(--t1)', fontWeight: 500 }}>{item.title || item.name}</strong>
-                                    </div>
-                                    <button
-                                        className={`btn ${isAttached ? 'btn-secondary' : 'btn-primary'}`}
-                                        onClick={() => handleToggleAttach(item.id, isAttached ? 'remove' : 'add')}
-                                        disabled={isSaving}
-                                    >
-                                        {isAttached ? 'Unmount' : 'Mount'}
-                                    </button>
-                                </div>
-                            );
-                        })
+                        items.map((item) => (
+                            <div key={item.id} style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '12px', borderRadius: '8px', border: '1px solid var(--border)',
+                                background: 'var(--elevated)',
+                                transition: 'all 0.15s'
+                            }}>
+                                <strong style={{ fontSize: '13px', color: 'var(--t1)', fontWeight: 500 }}>{item.title || item.name}</strong>
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => handleToggleAttach(item.id, 'remove')}
+                                    disabled={isSaving}
+                                    style={{ color: 'var(--red)' }}
+                                >
+                                    {activeTab === 'documents' ? 'Remove' : 'Unmount'}
+                                </button>
+                            </div>
+                        ))
                     )}
                 </div>
             </div>
+
+            {/* Add Documents Picker Drawer */}
+            {activeTab === 'documents' && (
+                <Drawer
+                    isOpen={showAddModal}
+                    onClose={() => setShowAddModal(false)}
+                    title="Add Documents"
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--t2)', marginTop: 0, marginBottom: '8px' }}>
+                            Select documents from your organization to include in this collection.
+                        </p>
+                        {allAvailable.filter(a => !items.find(i => i.id === a.id)).length === 0 ? (
+                            <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--t3)', fontSize: '13px' }}>
+                                No additional documents available.
+                            </div>
+                        ) : (
+                            allAvailable.filter(a => !items.find(i => i.id === a.id)).map(item => (
+                                <div key={item.id} style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '12px', borderRadius: '8px', border: '1px solid var(--border)',
+                                    background: 'var(--elevated)'
+                                }}>
+                                    <strong style={{ fontSize: '13px', color: 'var(--t1)', fontWeight: 500 }}>{item.title}</strong>
+                                    <button
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => handleToggleAttach(item.id, 'add')}
+                                        disabled={isSaving}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </Drawer>
+            )}
         </div>
     );
 }
