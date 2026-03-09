@@ -16,6 +16,7 @@ import { GuardrailsModule } from './modules/guardrails/guardrails.module';
 import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
 import { AssistantThrottlerGuard } from './guards/assistant-throttler.guard';
 import { throttlerConfig } from './config/throttler.config';
+import { CollectionsModule } from './modules/collections/collections.module';
 import * as path from 'path';
 
 @Module({
@@ -42,6 +43,7 @@ import * as path from 'path';
     GuardrailsModule,
     // Optional integrations
     N8nModule.forRoot(),
+    CollectionsModule,
   ],
   controllers: [AppController],
   providers: [

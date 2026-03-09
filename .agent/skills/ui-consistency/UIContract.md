@@ -60,14 +60,18 @@ Use soft, deep dark shadows to convey depth on hover or for floating elements.
 
 ## 🧩 Component Patterns
 
-### 1. Cards
+### 1. Cards (Assistants, Collections, Sources)
 *   **Structure**:
     *   `background: var(--elevated)`
     *   `border: 1px solid var(--border)`
     *   `border-radius: var(--r3)`
     *   `overflow: hidden`
 *   **Hover Effect**: Background shifts to `var(--hover)`, border to `var(--borderhi)`, transforms upwards (`transform: translateY(-1px)`), and gains a shadow (`0 8px 24px rgba(0, 0, 0, 0.3)`).
-*   **Internal Layout**: Divide cards using `.card-top`, `.card-stats`, and `.card-footer`. Separate internal horizontal sections with `border-top: 1px solid var(--border)`.
+*   **Internal Layout Requirements**:
+    *   All cards across the entire application must use the standard 3-layer internal approach, and must never invent a custom flex container.
+    *   **Layer 1**: `.card-top` (padding 16px). Contains `.card-header` (which holds a `.card-icon` and `.card-meta` chips), `.card-name`, and `.card-desc`.
+    *   **Layer 2**: `.card-stats` (padding 11px 16px). Contains exactly *three* `.stat` blocks separated by right borders (`var(--border)`).
+    *   **Layer 3**: `.card-footer` (padding 11px 16px). Contains additional metadata on left, and `.studio-cta` or primary action button on the right.
 
 ### 2. Buttons
 *   **Base Styles**: `display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--r); font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif; border: none; transition: all 0.15s;`
@@ -87,10 +91,34 @@ Use soft, deep dark shadows to convey depth on hover or for floating elements.
 *   **Labels (`.flabel`)**: `font-size: 11px`, `font-weight: 500`, `color: var(--t2)`, `margin-bottom: 5px`.
 
 ### 4. Page Layout
-*   **Header (`.page-header`)**: Uses `var(--surface)` background and a bottom border `var(--border)`. Always flexbed to handle left (titles) and right (actions).
-*   **Title & Description**: Title is `18px` (`var(--t1)`, `700` weight). Description is `12px` (`var(--t2)`).
-*   **Page Body (`.page-body`)**: Wrapper for the main scrollable area, padding `24px 28px`.
+*   **Header (`.page-header`)**: The main top-level structural header of any major view (e.g. Quality, Knowledge, Settings). Uses `var(--surface)` background and a bottom border `var(--border)`. It is flexbox-aligned to handle left content (titles) and right content (actions). Standard padding is `24px 32px`.
+*   **Header Title & Desc**: Must use strict semantic HTML inside `.page-header`.
+    *   Title: `<h1 className="page-title">`. Styled to `18px`, `var(--t1)`, `700` weight, with no margin.
+    *   Description: `<p className="page-description">`. Styled to `13px`, `var(--t2)`, with `margin-top: 8px` and `margin-bottom: 0`.
+*   **Header Actions**: Primary actions for a page sequence (e.g. "Create Assistant", "New Collection", "Upload Document") MUST be placed in the main top `.page-header` on the right side. They should never be arbitrarily positioned above content inside the `.page-body`. Use React Portals for layout-injected nested route buttons.
+*   **Page Body (`.page-body`)**: Wrapper for the main scrollable area below the header, padding `24px 28px`.
 
 ### 5. Chips/Badges
 *   **Base Styles (`.chip`)**: `padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;`
 *   **Variant Styles**: Always pair an opaque background variant with the bold color text (e.g., `background: var(--mint1)` with `color: var(--mint)`). Often includes a tiny colored `5px` dot (`.chip-dot`).
+
+### 6. Empty States
+*   **Core Logic**: Use the reusable `<EmptyState title="Title" description="Subtitle" action={<button>Click</button>} />` component rather than hardcoding `.empty-state` logic directly.
+*   **Visual Check**: It should feature a 44px semi-transparent icon, a 15px `600` weight title (`var(--t1)`), a 12px description text (`var(--t2)`), and an optional action button below it.
+*   **Spacing**: Ensure padding of `48px 24px` around the empty state content.
+
+### 7. Drawers
+*   **Interaction**: Complex forms or secondary flows (like Uploading, Creating) should use slide-out right-aligned Drawers instead of center Modals or explicit route changes.
+*   **Core Logic**: Use the reusable `<Drawer isOpen={state} onClose={fn} title="Title" footer={<buttons />}>` component. Do NOT manually construct absolute DOM positioning for drawers.
+*   **Backdrop**: Drawers must have a strict `rgba(0, 0, 0, 0.4)` backdrop that dismisses on click or `Escape` key, freezing the body scroll.
+*   **Elevation**: Drawers sit at `z-index: 1000` with `var(--elevated)` backgrounds, left borders (`var(--border)`), and deep shadows (`-12px 0 32px rgba(0,0,0,0.5)`).
+
+### 8. Center Modals
+*   **Interaction**: Focused explicit confirmations (e.g. "Delete Assistant?") or simple mounting logic (e.g. "Mount Collections") should use centered Modals instead of sliding Drawers.
+*   **Core Logic**: Use the reusable `<Modal isOpen={state} onClose={fn} title="Title" description="Description" footer={<buttons />}>` component. Do NOT manually construct `<div className="modal-overlay">` wrappers directly on the page.
+*   **Backdrop**: Uses a `z-index: 1000` React portal overlay `rgba(0,0,0,0.4)` that freezes the body scroll and traps escaping.
+*   **Style**: Modals max out at `400px` to `480px` depending on content density. Visual theme includes `var(--elevated)` background, `var(--r3)` corner radius, and `-16px 0 48px rgba(0,0,0,0.5)` drop shadows.
+
+### 9. Breadcrumbs
+*   **Structure**: Breadcrumbs act as navigation chrome and should be visually lightweight. They must sit directly on the page background (e.g. directly inside `.page-body` or `.page-header`) and should **never** be wrapped inside a `.card` container.
+*   **Style**: Ensure breadcrumbs are positioned above their target content (like tables) without adding visual boxing or border.

@@ -11,7 +11,9 @@ import { QueryProcessorService, ProcessedQuery, QueryType } from './query-proces
 
 export interface Document {
     id: string;
-    tenantId: string;
+    organizationId?: string;
+    assistantId?: string;
+    tenantId?: string;
     title: string;
     content: string;
     sourceUrl?: string;
@@ -19,6 +21,7 @@ export interface Document {
     version: number;
     status: string;
     createdAt?: string;
+    chunkCount?: number;
 }
 
 export interface DocumentChunk {
@@ -59,11 +62,9 @@ export class KnowledgeService {
         this.supabase = createClient(supabaseUrl, serviceRoleKey);
     }
 
-    /**
-     * Ingest a document: chunk it and create embeddings.
-     */
     async ingestDocument(
-        tenantId: string,
+        orgId: string | undefined,
+        assistantId: string | undefined,
         title: string,
         content: string,
         options?: {
@@ -71,11 +72,14 @@ export class KnowledgeService {
             docType?: string;
         },
     ): Promise<Document> {
+        if (!orgId && !assistantId) throw new Error("Must provide at least an orgId or assistantId");
+
         // 1. Insert the document
         const { data: doc, error: docError } = await this.supabase
             .from('documents')
             .insert({
-                assistant_id: tenantId, // Using tenantId arg as assistantId
+                organization_id: orgId || null,
+                assistant_id: assistantId || null,
                 title,
                 content,
                 source_url: options?.sourceUrl,
@@ -122,6 +126,8 @@ export class KnowledgeService {
 
         return {
             id: doc.id,
+            organizationId: doc.organization_id,
+            assistantId: doc.assistant_id,
             tenantId: doc.tenant_id,
             title: doc.title,
             content: doc.content,
@@ -582,6 +588,8 @@ Most to least relevant (numbers only):`;
 
         return {
             id: doc.id,
+            organizationId: doc.organization_id,
+            assistantId: doc.assistant_id,
             tenantId: doc.tenant_id,
             title: doc.title,
             content: doc.content,
@@ -637,7 +645,7 @@ Most to least relevant (numbers only):`;
     async getDocuments(tenantId: string): Promise<Document[]> {
         const { data, error } = await this.supabase
             .from('documents')
-            .select('*')
+            .select('*, document_chunks(count)')
             .eq('assistant_id', tenantId) // Query by assistant_id
             .eq('status', 'active')
             .order('created_at', { ascending: false });
@@ -648,6 +656,8 @@ Most to least relevant (numbers only):`;
 
         return data.map((doc) => ({
             id: doc.id,
+            organizationId: doc.organization_id,
+            assistantId: doc.assistant_id,
             tenantId: doc.tenant_id,
             title: doc.title,
             content: doc.content,
@@ -656,19 +666,20 @@ Most to least relevant (numbers only):`;
             version: doc.version,
             status: doc.status,
             createdAt: doc.created_at,
+            chunkCount: doc.document_chunks?.[0]?.count ?? 0,
         }));
     }
 
     /**
      * Get documents across all assistants in an org (org-scoped).
      */
-    async getDocumentsByOrg(assistantIds: string[]): Promise<Document[]> {
-        if (assistantIds.length === 0) return [];
+    async getDocumentsByOrg(orgId: string): Promise<Document[]> {
+        if (!orgId) return [];
 
         const { data, error } = await this.supabase
             .from('documents')
-            .select('*, assistants!inner(name)')
-            .in('assistant_id', assistantIds)
+            .select('*, assistants!left(name), document_chunks(count)')
+            .eq('organization_id', orgId)
             .eq('status', 'active')
             .order('created_at', { ascending: false });
 
@@ -678,8 +689,9 @@ Most to least relevant (numbers only):`;
 
         return (data || []).map((doc: any) => ({
             id: doc.id,
-            tenantId: doc.tenant_id,
+            organizationId: doc.organization_id,
             assistantId: doc.assistant_id,
+            tenantId: doc.tenant_id,
             assistantName: doc.assistants?.name,
             title: doc.title,
             content: doc.content,
@@ -688,6 +700,7 @@ Most to least relevant (numbers only):`;
             version: doc.version,
             status: doc.status,
             createdAt: doc.created_at,
+            chunkCount: doc.document_chunks?.[0]?.count ?? 0,
         }));
     }
 

@@ -173,7 +173,7 @@ export default function StudioPage() {
         switch (tab) {
             case 'persona': return <PersonaTab persona={persona} onPersonaChange={setPersona} />;
             case 'behavior': return <BehaviorTab assistantType={assistantType} onAssistantTypeChange={setAssistantType} delegationConfig={delegationConfig} onDelegationConfigChange={setDelegationConfig} />;
-            case 'knowledge': return <KnowledgeTab />;
+            case 'knowledge': return <KnowledgeTab assistantId={assistantId} />;
             case 'handoff': return <HandoffTab config={handoffConfig} onChange={setHandoffConfig} />;
             case 'widget': return <WidgetThemeTab config={widgetTheme} onChange={setWidgetTheme} welcomeMessage={welcomeMessage} onWelcomeMessageChange={setWelcomeMessage} starterQuestions={starterQuestions} onStarterQuestionsChange={setStarterQuestions} />;
             case 'deploy': return <DeployTab assistantId={assistantId} apiUrl={API_URL} domainAllowlist={domainAllowlist} onDomainAllowlistChange={setDomainAllowlist} widgetTheme={widgetTheme} />;

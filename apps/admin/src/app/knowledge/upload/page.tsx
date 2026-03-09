@@ -22,7 +22,7 @@ interface SupportedTypes {
 
 export default function UploadDocumentPage() {
     const router = useRouter();
-    const { assistants, loading: orgLoading } = useOrg();
+    const { orgId, assistants, loading: orgLoading } = useOrg();
     const assistantId = assistants[0]?.id || '';
     const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
     const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -125,6 +125,7 @@ export default function UploadDocumentPage() {
                 method: 'POST',
                 headers: {
                     'X-Assistant-ID': assistantId,
+                    ...(orgId ? { 'X-Organization-ID': orgId } : {}),
                 },
                 body: formData,
             });
@@ -177,6 +178,7 @@ export default function UploadDocumentPage() {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Assistant-ID': assistantId,
+                    ...(orgId ? { 'X-Organization-ID': orgId } : {}),
                 },
                 body: JSON.stringify({
                     title: title.trim(),
@@ -199,43 +201,33 @@ export default function UploadDocumentPage() {
 
     if (!assistantId) {
         return (
-            <div className="studio-container">
-                {/* Top bar */}
-                <div className="topbar">
-                    <div className="topbar-l">
-                        <span className="topbar-name">Upload Document</span>
-                    </div>
+            <div>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--t1)', margin: 0 }}>Upload Document</h2>
                 </div>
-                <div className="page-body">
-                    <div className="empty-state">
-                        <p>Please set your assistant ID on the dashboard first.</p>
-                        <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
-                            Go to Dashboard
-                        </Link>
-                    </div>
+                <div className="empty-state">
+                    <p>Please set your assistant ID on the dashboard first.</p>
+                    <Link href="/" className="btn btn-primary" style={{ marginTop: '16px' }}>
+                        Go to Dashboard
+                    </Link>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="studio-container">
-            {/* Top bar (matching Assistant Detail) */}
-            <div className="topbar">
-                <div className="topbar-l">
-                    <Link href="/knowledge" className="back-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                            <line x1="19" y1="12" x2="5" y2="12" />
-                            <polyline points="12 19 5 12 12 5" />
-                        </svg>
-                        Knowledge
-                    </Link>
-                    <div className="topbar-sep" />
-                    <span className="topbar-name">Upload Document</span>
-                </div>
+        <div style={{ paddingBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+                <Link href="/knowledge/sources" className="btn btn-secondary" style={{ padding: '6px' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                </Link>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--t1)', margin: 0 }}>Upload Document</h2>
             </div>
 
-            <div className="page-body">
+            <div style={{ padding: 0 }}>
                 {/* Mode Toggle */}
                 <div className="filter-row" style={{ marginBottom: '24px' }}>
                     <button

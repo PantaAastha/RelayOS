@@ -141,7 +141,7 @@
      - `side-panel` — slides in from the right, better for long Docs responses
      - `floating-avatar` — persistent avatar that follows the user, best for Onboarding guided flows
      - `inline` — embedded directly in the page at a specified container
-   - [ ] 🟢 Mode-specific config options exposed per selected mode (e.g. avatar appearance for floating-avatar, panel width for side-panel)
+   - [x] 🟢 Mode-specific config options exposed per selected mode (e.g. avatar appearance for floating-avatar, panel width for side-panel)
 
 6. **Deploy**
    - [x] 🔴 Embed snippet generator with one-click copy + "Copied" toast

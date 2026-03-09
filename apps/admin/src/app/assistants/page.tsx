@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import { SkeletonTable } from '@/components/Skeleton';
 import { useOrg } from '@/components/OrgContext';
+import Modal from '@/components/Modal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -164,70 +165,77 @@ export default function AssistantsPage() {
     return (
         <>
             {/* Create Modal */}
-            {showCreate && (
-                <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="modal-title">Create New Assistant</h3>
-                        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {/* Template selector */}
-                            <div>
-                                <label className="flabel" style={{ marginBottom: '8px' }}>Template</label>
-                                <div className="aut-grid">
-                                    {(['reactive', 'reference', 'guided'] as const).map((type) => {
-                                        const meta = TYPE_META[type];
-                                        return (
-                                            <div
-                                                key={type}
-                                                className={`aut-card${newType === type ? ' on' : ''}`}
-                                                onClick={() => setNewType(type)}
-                                            >
-                                                <div className="aut-em">{TYPE_ICONS[type]}</div>
-                                                <div className="aut-lb">{meta.label}</div>
-                                                <div className="aut-ds">{meta.desc}</div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                            <div className="field">
-                                <label className="flabel">Name</label>
-                                <input
-                                    className="finput" placeholder="Acme Support"
-                                    value={newName}
-                                    onChange={(e) => {
-                                        setNewName(e.target.value);
-                                        if (!newSlug) setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
-                                    }}
-                                />
-                            </div>
-                            <div className="field">
-                                <label className="flabel">Slug</label>
-                                <input className="finput" placeholder="acme-support" value={newSlug} onChange={(e) => setNewSlug(e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="modal-actions" style={{ marginTop: '20px' }}>
-                            <button className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleCreate} disabled={submitting}>
-                                {submitting ? 'Creating...' : 'Create Assistant'}
-                            </button>
+            <Modal
+                isOpen={showCreate}
+                onClose={() => setShowCreate(false)}
+                title="Create New Assistant"
+                maxWidth="480px"
+                footer={
+                    <>
+                        <button className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
+                        <button className="btn btn-primary" onClick={handleCreate} disabled={submitting}>
+                            {submitting ? 'Creating...' : 'Create Assistant'}
+                        </button>
+                    </>
+                }
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Template selector */}
+                    <div>
+                        <label className="flabel" style={{ marginBottom: '8px', display: 'block' }}>Template</label>
+                        <div className="aut-grid">
+                            {(['reactive', 'reference', 'guided'] as const).map((type) => {
+                                const meta = TYPE_META[type];
+                                return (
+                                    <div
+                                        key={type}
+                                        className={`aut-card${newType === type ? ' on' : ''}`}
+                                        onClick={() => setNewType(type)}
+                                    >
+                                        <div className="aut-em">{TYPE_ICONS[type]}</div>
+                                        <div className="aut-lb">{meta.label}</div>
+                                        <div className="aut-ds">{meta.desc}</div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
+                    <div className="field">
+                        <label className="flabel">Name</label>
+                        <input
+                            className="finput" placeholder="Acme Support"
+                            value={newName}
+                            onChange={(e) => {
+                                setNewName(e.target.value);
+                                if (!newSlug) setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                            }}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                    <div className="field">
+                        <label className="flabel">Slug</label>
+                        <input className="finput" placeholder="acme-support" value={newSlug} onChange={(e) => setNewSlug(e.target.value)} style={{ width: '100%' }} />
+                    </div>
                 </div>
-            )}
+            </Modal>
 
             {/* Delete Modal */}
-            {deleteId && (
-                <div className="modal-overlay" onClick={() => setDeleteId(null)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="modal-title">Delete Assistant?</h3>
-                        <p className="modal-message">This action cannot be undone. All conversations and data will be lost.</p>
-                        <div className="modal-actions">
-                            <button className="btn btn-ghost" onClick={() => setDeleteId(null)}>Cancel</button>
-                            <button className="btn btn-danger" onClick={confirmDelete}>Delete</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                title="Delete Assistant?"
+                description="This action cannot be undone. All conversations and data will be lost."
+                maxWidth="380px"
+                footer={
+                    <>
+                        <button className="btn btn-ghost" onClick={() => setDeleteId(null)}>Cancel</button>
+                        <button className="btn btn-danger" onClick={confirmDelete}>Delete</button>
+                    </>
+                }
+            >
+                {/* Empty content as description covers the text */}
+                <div />
+            </Modal>
 
             {/* Page Header */}
             <div className="page-header">

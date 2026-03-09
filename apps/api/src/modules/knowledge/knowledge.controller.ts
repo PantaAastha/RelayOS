@@ -42,9 +42,11 @@ export class KnowledgeController {
         @Headers() headers: Record<string, string>,
         @Body() dto: IngestDocumentDto,
     ) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+
+        if (!orgId && !assistantId) {
+            throw new HttpException('X-Organization-ID or X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.title || !dto.content) {
@@ -52,6 +54,7 @@ export class KnowledgeController {
         }
 
         const document = await this.knowledgeService.ingestDocument(
+            orgId,
             assistantId,
             dto.title,
             dto.content,
@@ -78,23 +81,14 @@ export class KnowledgeController {
         const assistantId = headers['x-assistant-id'];
 
         if (orgId) {
-            // Org-scoped: list documents across all assistants
-            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(orgId);
-            const documents = await this.knowledgeService.getDocumentsByOrg(assistantIds);
+            // Org-scoped: list directly using organization_id
+            const documents = await this.knowledgeService.getDocumentsByOrg(orgId);
             return { documents };
         }
 
         if (assistantId) {
             // Assistant-scoped (legacy / widget)
             const documents = await this.knowledgeService.getDocuments(assistantId);
-            return { documents };
-        }
-
-        // Fallback: auto-detect org from first assistant
-        const defaultOrgId = await this.assistantsService.getDefaultOrgId();
-        if (defaultOrgId) {
-            const assistantIds = await this.assistantsService.getAssistantIdsForOrg(defaultOrgId);
-            const documents = await this.knowledgeService.getDocumentsByOrg(assistantIds);
             return { documents };
         }
 
@@ -181,9 +175,11 @@ export class KnowledgeController {
         @UploadedFile() file: Express.Multer.File,
         @Body() body: { title?: string; docType?: string },
     ) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+
+        if (!orgId && !assistantId) {
+            throw new HttpException('X-Organization-ID or X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!file) {
@@ -205,6 +201,7 @@ export class KnowledgeController {
 
         // Ingest the extracted content
         const document = await this.knowledgeService.ingestDocument(
+            orgId,
             assistantId,
             title,
             extraction.content,
@@ -232,9 +229,11 @@ export class KnowledgeController {
         @UploadedFiles() files: Express.Multer.File[],
         @Body() body: { docType?: string },
     ) {
+        const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
-        if (!assistantId) {
-            throw new HttpException('X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+
+        if (!orgId && !assistantId) {
+            throw new HttpException('X-Organization-ID or X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!files || files.length === 0) {
@@ -263,6 +262,7 @@ export class KnowledgeController {
 
                 const title = file.originalname.replace(/\.[^/.]+$/, '');
                 const document = await this.knowledgeService.ingestDocument(
+                    orgId,
                     assistantId,
                     title,
                     extraction.content,
