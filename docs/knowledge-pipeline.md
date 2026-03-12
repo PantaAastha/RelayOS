@@ -472,3 +472,34 @@ These are what make the three tabs feel like one flow rather than three isolated
 - [ ] Collections not mounted to any assistant show amber nudge
 - [ ] Every empty state has a CTA pointing to the next step
 - [ ] Toast flow connects Upload → Jobs → Sources → Collections
+-----
+## Functionality:
+There seems to be critical gap in functionality.
+
+**What mounting is supposed to do**
+- A collection is a named group of documents
+- Mounting a collection to an assistant tells the RAG pipeline: "when this assistant searches for chunks, only look inside these collections"
+- An unmounted collection is invisible to the assistant — it cannot retrieve from it regardless of how relevant the content is
+
+**The current broken state**
+- The `assistant_collections` junction table exists in the schema but the RAG pipeline isn't reading it
+- When a query comes in, the retrieval step is doing a broad vector search across all documents in the org
+- The `assistant_id` filter that should narrow retrieval to mounted collections only is either missing or not being applied
+
+**How the retrieval query should work**
+- Step 1: get the collection IDs mounted to this assistant → `SELECT collection_id FROM assistant_collections WHERE assistant_id = ?`
+- Step 2: get the document IDs in those collections → `SELECT document_id FROM collection_documents WHERE collection_id IN (...)`
+- Step 3: vector search scoped to only those documents → `WHERE document_id IN (...)`
+- If an assistant has no mounted collections → return nothing, don't fall back to all docs
+
+**What unmounting means**
+- Removing the row from `assistant_collections`
+- From that point the assistant can no longer retrieve from that collection
+- Documents in the collection still exist in the org — they're just no longer in scope for that assistant
+
+**The implications for your current setup**
+- Right now every assistant effectively has access to the entire org knowledge base
+- This makes the whole collection system meaningless until the retrieval scoping is enforced
+- It also means the "Not in any collection" nudge on document rows is cosmetically correct but functionally irrelevant — the document is being retrieved anyway
+
+This needs to be fixed at the RAG pipeline level before M3 can be considered done.

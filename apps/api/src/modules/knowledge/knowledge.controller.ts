@@ -45,8 +45,8 @@ export class KnowledgeController {
         const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
 
-        if (!orgId && !assistantId) {
-            throw new HttpException('X-Organization-ID or X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+        if (!orgId) {
+            throw new HttpException('X-Organization-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!dto.title || !dto.content) {
@@ -55,7 +55,6 @@ export class KnowledgeController {
 
         const document = await this.knowledgeService.ingestDocument(
             orgId,
-            assistantId,
             dto.title,
             dto.content,
             {
@@ -178,8 +177,8 @@ export class KnowledgeController {
         const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
 
-        if (!orgId && !assistantId) {
-            throw new HttpException('X-Organization-ID or X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+        if (!orgId) {
+            throw new HttpException('X-Organization-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!file) {
@@ -202,7 +201,6 @@ export class KnowledgeController {
         // Ingest the extracted content
         const document = await this.knowledgeService.ingestDocument(
             orgId,
-            assistantId,
             title,
             extraction.content,
             {
@@ -232,8 +230,8 @@ export class KnowledgeController {
         const orgId = headers['x-organization-id'];
         const assistantId = headers['x-assistant-id'];
 
-        if (!orgId && !assistantId) {
-            throw new HttpException('X-Organization-ID or X-Assistant-ID header is required', HttpStatus.BAD_REQUEST);
+        if (!orgId) {
+            throw new HttpException('X-Organization-ID header is required', HttpStatus.BAD_REQUEST);
         }
 
         if (!files || files.length === 0) {
@@ -263,7 +261,6 @@ export class KnowledgeController {
                 const title = file.originalname.replace(/\.[^/.]+$/, '');
                 const document = await this.knowledgeService.ingestDocument(
                     orgId,
-                    assistantId,
                     title,
                     extraction.content,
                     {

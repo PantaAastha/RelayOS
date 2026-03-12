@@ -12,8 +12,6 @@ import { QueryProcessorService, ProcessedQuery, QueryType } from './query-proces
 export interface Document {
     id: string;
     organizationId?: string;
-    assistantId?: string;
-    tenantId?: string;
     title: string;
     content: string;
     sourceUrl?: string;
@@ -63,8 +61,7 @@ export class KnowledgeService {
     }
 
     async ingestDocument(
-        orgId: string | undefined,
-        assistantId: string | undefined,
+        orgId: string,
         title: string,
         content: string,
         options?: {
@@ -72,14 +69,13 @@ export class KnowledgeService {
             docType?: string;
         },
     ): Promise<Document> {
-        if (!orgId && !assistantId) throw new Error("Must provide at least an orgId or assistantId");
+        if (!orgId) throw new Error("Must provide an orgId");
 
         // 1. Insert the document
         const { data: doc, error: docError } = await this.supabase
             .from('documents')
             .insert({
-                organization_id: orgId || null,
-                assistant_id: assistantId || null,
+                organization_id: orgId,
                 title,
                 content,
                 source_url: options?.sourceUrl,
@@ -127,8 +123,6 @@ export class KnowledgeService {
         return {
             id: doc.id,
             organizationId: doc.organization_id,
-            assistantId: doc.assistant_id,
-            tenantId: doc.tenant_id,
             title: doc.title,
             content: doc.content,
             sourceUrl: doc.source_url,
@@ -589,8 +583,6 @@ Most to least relevant (numbers only):`;
         return {
             id: doc.id,
             organizationId: doc.organization_id,
-            assistantId: doc.assistant_id,
-            tenantId: doc.tenant_id,
             title: doc.title,
             content: doc.content,
             sourceUrl: doc.source_url,
@@ -643,31 +635,53 @@ Most to least relevant (numbers only):`;
      * Get all documents for a tenant
      */
     async getDocuments(tenantId: string): Promise<Document[]> {
+        // Query documents through the collections join table
         const { data, error } = await this.supabase
-            .from('documents')
-            .select('*, document_chunks(count)')
-            .eq('assistant_id', tenantId) // Query by assistant_id
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
+            .from('assistant_collections')
+            .select(`
+                collections (
+                    collection_documents (
+                        documents (
+                            id, organization_id, title, content, source_url, doc_type, version, status, created_at,
+                            document_chunks (count)
+                        )
+                    )
+                )
+            `)
+            .eq('assistant_id', tenantId);
 
         if (error) {
             throw new Error(`Failed to fetch documents: ${error.message}`);
         }
 
-        return data.map((doc) => ({
-            id: doc.id,
-            organizationId: doc.organization_id,
-            assistantId: doc.assistant_id,
-            tenantId: doc.tenant_id,
-            title: doc.title,
-            content: doc.content,
-            sourceUrl: doc.source_url,
-            docType: doc.doc_type,
-            version: doc.version,
-            status: doc.status,
-            createdAt: doc.created_at,
-            chunkCount: doc.document_chunks?.[0]?.count ?? 0,
-        }));
+        // Flatten the nested result
+        const docsMap = new Map();
+        (data || []).forEach((row: any) => {
+            const col = row.collections;
+            if (col && Array.isArray(col.collection_documents)) {
+                col.collection_documents.forEach((cd: any) => {
+                    const doc = cd.documents;
+                    if (doc && doc.status === 'active' && !docsMap.has(doc.id)) {
+                        docsMap.set(doc.id, {
+                            id: doc.id,
+                            organizationId: doc.organization_id,
+                            title: doc.title,
+                            content: doc.content,
+                            sourceUrl: doc.source_url,
+                            docType: doc.doc_type,
+                            version: doc.version,
+                            status: doc.status,
+                            createdAt: doc.created_at,
+                            chunkCount: doc.document_chunks?.[0]?.count ?? 0,
+                        });
+                    }
+                });
+            }
+        });
+
+        return Array.from(docsMap.values()).sort((a: any, b: any) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
     }
 
     /**
@@ -678,7 +692,7 @@ Most to least relevant (numbers only):`;
 
         const { data, error } = await this.supabase
             .from('documents')
-            .select('*, assistants!left(name), document_chunks(count)')
+            .select('*, document_chunks(count)')
             .eq('organization_id', orgId)
             .eq('status', 'active')
             .order('created_at', { ascending: false });
@@ -690,9 +704,6 @@ Most to least relevant (numbers only):`;
         return (data || []).map((doc: any) => ({
             id: doc.id,
             organizationId: doc.organization_id,
-            assistantId: doc.assistant_id,
-            tenantId: doc.tenant_id,
-            assistantName: doc.assistants?.name,
             title: doc.title,
             content: doc.content,
             sourceUrl: doc.source_url,

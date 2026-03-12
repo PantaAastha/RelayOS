@@ -227,6 +227,51 @@ export class ConversationService {
             );
         }
 
+        const isConversational = this.isGreeting(sanitizedUserMessage) || this.isGreeting(userMessage);
+
+        // --- HARD GUARDRAIL ---
+        // If there are no search results and it's not just a casual greeting, 
+        // skip the LLM completely to guarantee zero hallucination.
+        if (searchResults.length === 0 && !isConversational) {
+            const fallbackContent = "I don't have information about that in my knowledge base. Is there something else I can help with?";
+            
+            await this.eventsService.log(
+                tenantId,
+                'rag.refused',
+                { reason: 'no_relevant_docs_hard_guardrail', query: sanitizedUserMessage },
+                conversationId,
+            );
+
+            // Save assistant fallback response
+            const { data: assistantMsg, error: assistantMsgError } = await this.supabase
+                .from('messages')
+                .insert({
+                    conversation_id: conversationId,
+                    role: 'assistant',
+                    content: fallbackContent,
+                    citations: [],
+                    confidence: 1.0,  // We are 100% confident we don't know
+                    grade: 'UNSUPPORTED',
+                })
+                .select('id')
+                .single();
+
+            if (assistantMsgError) {
+                throw new Error(`Failed to save response: ${assistantMsgError.message}`);
+            }
+
+            return {
+                conversationId,
+                messageId: assistantMsg.id,
+                response: {
+                    content: fallbackContent,
+                    citations: [],
+                    confidence: 1.0,
+                    grade: 'UNSUPPORTED',
+                },
+            };
+        }
+
         // 4. Get conversation history (last 10 messages for context)
         const { data: history } = await this.supabase
             .from('messages')
@@ -295,14 +340,14 @@ export class ConversationService {
             }))
             : [];
 
-        // 8a. Grade the answer for quality (skip for greetings / no-context responses)
-        const isConversational = this.isGreeting(userMessage) || searchResults.length === 0;
+        // 8a. Grade the answer for quality (skip for greetings)
+        const skipGrading = isConversational || searchResults.length === 0;
 
         let gradingGrade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | null = null;
         let gradingConfidence: number | null = null;
         let gradingReasoning = 'Skipped — conversational message';
 
-        if (!isConversational) {
+        if (!skipGrading) {
             const gradingResult = await this.gradeAnswer(context, response.content);
             gradingGrade = gradingResult.grade;
             gradingConfidence = gradingResult.confidence;
@@ -324,7 +369,7 @@ export class ConversationService {
 
         // If UNSUPPORTED, add disclaimer to response (never for conversational messages)
         let finalContent = response.content;
-        if (!isConversational && gradingGrade === 'UNSUPPORTED' && (gradingConfidence ?? 0) > 0.7) {
+        if (!skipGrading && gradingGrade === 'UNSUPPORTED' && (gradingConfidence ?? 0) > 0.7) {
             finalContent = `⚠️ *This response may not be fully supported by our knowledge base.*\n\n${response.content}`;
         }
 
@@ -476,6 +521,41 @@ export class ConversationService {
             console.warn(`[PREVIEW] Search failed, proceeding without context`);
         }
 
+        const isConversational = this.isGreeting(userMessage);
+
+        // --- HARD GUARDRAIL ---
+        if (searchResults.length === 0 && !isConversational) {
+            const fallbackContent = "I don't have information about that in my knowledge base. Is there something else I can help with?";
+            onToken(fallbackContent);
+            
+            const { data: assistantMsg } = await this.supabase
+                .from('messages')
+                .insert({
+                    conversation_id: conversationId,
+                    role: 'assistant',
+                    content: fallbackContent,
+                    citations: [],
+                    confidence: 1.0,
+                    grade: 'UNSUPPORTED',
+                })
+                .select('id')
+                .single();
+
+            // Fast-fail the configuration confidence thresholds since we didn't know the answer
+            const threshold = (config.confidenceThreshold ?? 65) / 100;
+            const thresholdTriggered = 1.0 < threshold; // 1.0 confidence in refusal
+
+            return {
+                conversationId,
+                messageId: assistantMsg?.id || '',
+                citations: [],
+                confidence: 1.0,
+                grade: 'UNSUPPORTED',
+                thresholdTriggered,
+                delegationDecision: 'answer', // It's just a fallback answer
+            };
+        }
+
         // 4. Get conversation history
         const { data: history } = await this.supabase
             .from('messages')
@@ -530,7 +610,6 @@ export class ConversationService {
         }));
 
         // 9. Grade answer
-        const isConversational = this.isGreeting(userMessage) || searchResults.length === 0;
         let gradingGrade: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | null = null;
         let gradingConfidence: number | null = null;
 
