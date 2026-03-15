@@ -1,6 +1,6 @@
 # RelayOS UI Contract (Gold Standard)
 
-This contract defines the strict visual rules and component patterns extracted from the Assistant List and Assistant Detailed views. It serves as the single source of truth for creating a consistent, premium dark theme experience across the app.
+This contract defines the strict visual rules and component patterns for a consistent, premium dark theme experience across the RelayOS admin app.
 
 ## The Trigger
 **Set the skill to trigger automatically whenever I am creating or modifying any UI components or views.** 
@@ -16,45 +16,68 @@ This contract defines the strict visual rules and component patterns extracted f
 Avoid generic hex codes or external colors. Use the defined CSS variables:
 *   **Backgrounds & Surfaces**:
     *   App Background: `var(--bg)` (`#07080C`)
-    *   Default Surface: `var(--surface)` (`#0C0E14`) - *Used for page headers, sidebars, inner sections*
-    *   Elevated Surface: `var(--elevated)` (`#11141C`) - *Used for cards, inputs, buttons, modals*
+    *   Default Surface: `var(--surface)` (`#0C0E14`) - *Page headers, sidebars, modals*
+    *   Elevated Surface: `var(--elevated)` (`#11141C`) - *Cards, inputs, buttons*
     *   Hover State: `var(--hover)` (`#171B26`)
 *   **Borders**:
     *   Regular Border: `var(--border)` (`#1C2030`)
     *   Highlight/Hover Border: `var(--borderhi)` (`#252D40`)
 *   **Text Hierarchy**:
-    *   Primary Text (White): `var(--t1)` (`#DDE3EF`)
-    *   Secondary Text (Gray): `var(--t2)` (`#5A6478`)
+    *   Primary Text: `var(--t1)` (`#DDE3EF`)
+    *   Secondary Text: `var(--t2)` (`#5A6478`)
     *   Muted/Tertiary Text: `var(--t3)` (`#2E3548`)
-*   **Accents**:
-    *   Primary Accent: `var(--mint)` (`#1DFFA0`), supported by subtle variants `var(--mint1)` (10% opacity) and `var(--mint2)` (20% opacity).
-    *   Others: `var(--blue)`, `var(--purple)`, `var(--amber)`, `var(--red)`. Never use raw hex colors for accents.
+*   **Accents** (desaturated, premium):
+    *   Primary: `var(--mint)` (`#34D399` — soft emerald), with `var(--mint1)` (8% opacity) and `var(--mint2)` (18% opacity)
+    *   Semantic: `var(--blue)` (info), `var(--purple)` (onboard), `var(--amber)` (warning), `var(--red)` (error). Never use raw hex colors.
 
 ### 2. Typography & Font Scales
-The application exclusively uses the **Inter** font family (`'Inter', system-ui, sans-serif`). Do not use default fonts.
-*   **Base/Standard Text**: `12px` (General body, table cells, inputs, buttons)
-*   **Small/Meta Text**: `10px` or `11px`, often paired with `font-weight: 500` or `600` (Labels, badges, stats labels, tags)
-*   **Subtitles/Section Titles**: `14px` or `15px`, `font-weight: 600` (Card titles, modal titles, top bar names)
-*   **Page Titles**: `18px`, `font-weight: 700`, `letter-spacing: -0.01em`
+Two font families via CSS variables. **Never hardcode font-family inline.**
+*   **Display/Headlines**: `var(--font-display)` (`'Outfit'`) — used for page titles, card names, stat values, modal titles
+*   **Body/UI**: `var(--font-body)` (`'Geist'`) — used for everything else: body text, labels, buttons, inputs, section headers
+*   **Mono**: `var(--font-mono)` (`'JetBrains Mono'`) — code/data
+
+**Scale:**
+| Role | Font | Size | Weight | Letter-spacing |
+|------|------|------|--------|---------------|
+| Page Title | Display | 22px | 700 | -0.03em |
+| Card/Modal Title | Display | 14–15px | 600–700 | -0.01em |
+| Stat Value | Display | 28px | 800 | -0.03em |
+| Section Header | Body | 11px | 500 | 0.04em |
+| Body Text | Body | 12–13px | 400–500 | — |
+| Label | Body | 11px | 500–600 | — |
+| Caption | Body | 10–11px | 500 | — |
+
+**Typography rules:**
+*   `font-variant-numeric: tabular-nums` on all stat/number values
+*   `text-wrap: balance` on page titles
+*   No `text-transform: uppercase` — use letter-spacing instead
+*   `-webkit-font-smoothing: antialiased` applied globally
 
 ### 3. Spacing & Padding
 *   **Page Layout**:
-    *   Header (`.page-header`): Padding `18px 28px 16px`
-    *   Body (`.page-body`): Padding `24px 28px`
-*   **Cards & Panels**: Inner padding should be `16px` (e.g., `16px 16px 12px` or `11px 16px`).
+    *   Header (`.page-header`): Padding `22px 36px 20px`
+    *   Body (`.page-body`): Padding `32px 36px 48px`
+    *   Content Area (`.content-area`): Padding `28px 36px`
+*   **Cards & Panels**: Inner padding `16px` (e.g., `16px 16px 12px` or `11px 16px`).
 *   **Inputs**: Padding `8px 11px`.
 *   **Buttons**: Padding `7px 14px` (gap: `6px`). Small buttons (`.btn-sm`): Padding `5px 10px`.
+*   **Modals**: Header `16px 20px 14px`, Body `16px 20px`, Footer `14px 20px`.
 
-### 4. Borders & Radii
-*   Small Radius: `var(--r)` (`5px`) - *Inputs, Buttons, Searchbars*
-*   Medium Radius: `var(--r2)` (`8px`) - *Inner cards, Modals, Toasts, Avatars*
-*   Large Radius: `var(--r3)` (`12px`) - *Main content cards, Dialogs*
+### 4. Borders & Radii (Varied for depth)
+*   Small Radius: `var(--r)` (`6px`) — *Inputs, Buttons, Close buttons*
+*   Medium Radius: `var(--r2)` (`10px`) — *Inner cards, Stat cards, Toasts, Avatars*
+*   Large Radius: `var(--r3)` (`14px`) — *Main content cards, Modals, Dialogs*
 
-### 5. Shadows
-Use soft, deep dark shadows to convey depth on hover or for floating elements.
-*   **Card Hover**: `box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3)`
-*   **Modals/Popups**: `box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5)`
-*   **Primary Button Hover Glow**: `box-shadow: 0 0 14px var(--mint2)`
+### 5. Shadows (Tinted, not pure black)
+*   **Card Hover**: `box-shadow: 0 12px 32px rgba(7, 8, 18, 0.5)`
+*   **Modals/Popups**: `box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03) inset`
+*   **Primary Button Hover Glow**: `box-shadow: 0 0 20px var(--mint2)`
+
+### 6. Interactivity
+*   **Press feedback**: `.btn:active { transform: scale(0.97) }`
+*   **Focus rings**: `.btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px }`
+*   **Card hover**: Spring easing `transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1)`, `translateY(-2px)`
+*   **Noise overlay**: Body has a subtle SVG noise `::after` at `opacity: 0.025`
 
 ---
 
@@ -66,59 +89,77 @@ Use soft, deep dark shadows to convey depth on hover or for floating elements.
     *   `border: 1px solid var(--border)`
     *   `border-radius: var(--r3)`
     *   `overflow: hidden`
-*   **Hover Effect**: Background shifts to `var(--hover)`, border to `var(--borderhi)`, transforms upwards (`transform: translateY(-1px)`), and gains a shadow (`0 8px 24px rgba(0, 0, 0, 0.3)`).
+*   **Hover Effect**: Background shifts to `var(--hover)`, border to `var(--borderhi)`, transforms upwards (`translateY(-2px)`), gains tinted shadow (`0 12px 32px rgba(7, 8, 18, 0.5)`).
 *   **Internal Layout Requirements**:
     *   All cards across the entire application must use the standard 3-layer internal approach, and must never invent a custom flex container.
-    *   **Layer 1**: `.card-top` (padding 16px). Contains `.card-header` (which holds a `.card-icon` and `.card-meta` chips), `.card-name`, and `.card-desc`.
-    *   **Layer 2**: `.card-stats` (padding 11px 16px). Contains exactly *three* `.stat` blocks separated by right borders (`var(--border)`).
-    *   **Layer 3**: `.card-footer` (padding 11px 16px). Contains additional metadata on left, and `.studio-cta` or primary action button on the right.
+    *   **Layer 1**: `.card-top` (padding 16px). Contains `.card-header` (which holds a `.card-icon` and `.card-meta` chips), `.card-name` (uses `var(--font-display)`), and `.card-desc`.
+    *   **Layer 2**: `.card-stats` (padding 11px 16px). Contains `.stat` blocks separated by right borders (`var(--border)`).
+    *   **Layer 3**: `.card-footer` (padding 11px 16px). Contains metadata left, `.studio-cta` or action button right.
 
-### 2. Buttons
-*   **Base Styles**: `display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--r); font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif; border: none; transition: all 0.15s;`
-*   **Primary (`.btn-primary`)**: Background `var(--mint)`, Text Color `#07080C`. Hover adds `box-shadow: 0 0 14px var(--mint2)` and background `#38ffb0`.
-*   **Secondary (`.btn-secondary`)**: Background `var(--elevated)`, Border `1px solid var(--borderhi)`, Text Color `var(--t1)`. Hover background shifts to `var(--hover)`.
-*   **Ghost (`.btn-ghost`)**: Background `transparent`, Border `1px solid var(--borderhi)`, Text Color `var(--t2)`. Hover background shifts to `var(--hover)` and text to `var(--t1)`.
+### 2. Stat Cards (Dashboard)
+*   `background: var(--elevated)`, `border: 1px solid var(--border)`, `border-radius: var(--r2)`, `padding: 20px`
+*   **Left accent strip**: `::before` pseudo-element, 3px wide, `var(--mint)` at `opacity: 0.6`
+*   **Label**: 11px/500, `var(--t2)`, `letter-spacing: 0.04em`
+*   **Value**: `var(--font-display)`, 28px/800, `var(--t1)`, `letter-spacing: -0.03em`, `tabular-nums`
+*   **Hover**: `border-color: var(--borderhi)`, `translateY(-1px)`
 
-### 3. Inputs & Forms
+### 3. Buttons
+*   **Base Styles**: `font-family: var(--font-body); font-size: 12px; font-weight: 500; border-radius: var(--r); padding: 7px 14px; border: none; transition: all 0.15s;`
+*   **Primary (`.btn-primary`)**: Background `var(--mint)`, Text `#07080C`, `font-weight: 600`. Hover: `#5ee6b0` + glow `0 0 20px var(--mint2)`.
+*   **Secondary (`.btn-secondary`)**: Background `var(--elevated)`, Border `1px solid var(--borderhi)`, Text `var(--t1)`. Hover: `var(--hover)`.
+*   **Ghost (`.btn-ghost`)**: Background `transparent`, Border `1px solid var(--borderhi)`, Text `var(--t2)`. Hover: `var(--hover)` + `var(--t1)`.
+*   **Active**: `transform: scale(0.97)` on `:active:not(:disabled)`
+*   **Focus**: `outline: 2px solid var(--mint); outline-offset: 2px` on `:focus-visible`
+
+### 4. Inputs & Forms
 *   **Input Fields (`.finput` / `.fta`)**:
-    *   `background: var(--elevated)`
-    *   `border: 1px solid var(--border)`
-    *   `border-radius: var(--r)`
-    *   `padding: 8px 11px`
-    *   `font-size: 12px`
-    *   `color: var(--t1)`
-*   **Focus State**: Background shifts to `var(--hover)`, border strictly turns `var(--blue)`. Ensure `outline: none`.
+    *   `background: var(--elevated)`, `border: 1px solid var(--border)`, `border-radius: var(--r)`
+    *   `padding: 8px 11px`, `font-size: 12px`, `font-family: var(--font-body)`
+*   **Focus State**: Background shifts to `var(--hover)`, border turns `var(--blue)`. `outline: none`.
 *   **Labels (`.flabel`)**: `font-size: 11px`, `font-weight: 500`, `color: var(--t2)`, `margin-bottom: 5px`.
 
-### 4. Page Layout
-*   **Header (`.page-header`)**: The main top-level structural header of any major view (e.g. Quality, Knowledge, Settings). Uses `var(--surface)` background and a bottom border `var(--border)`. It is flexbox-aligned to handle left content (titles) and right content (actions). Standard padding is `18px 28px 16px`.
-*   **Header Title & Desc**: Must use strict semantic HTML inside `.page-header`.
-    *   Title: `<h1 className="page-title">`. Styled to `18px`, `var(--t1)`, `700` weight, with no margin.
-    *   Description: `<p className="page-description">`. Styled to `13px`, `var(--t2)`, with `margin-top: 8px` and `margin-bottom: 0`.
-*   **Header Actions**: Primary actions for a page sequence (e.g. "Create Assistant", "New Collection", "Upload Document") MUST be placed in the main top `.page-header` on the right side. They should never be arbitrarily positioned above content inside the `.page-body`. Use React Portals for layout-injected nested route buttons.
-*   **Page Body (`.page-body`)**: Wrapper for the main scrollable area below the header, padding `24px 28px`.
+### 5. Page Layout
+*   **Header (`.page-header`)**: `var(--surface)` background, bottom border `var(--border)`. Padding `22px 36px 20px`.
+*   **Title**: `<h1 className="page-title">` — `var(--font-display)`, 22px/700, `letter-spacing: -0.03em`, `text-wrap: balance`.
+*   **Description**: `<p className="page-description">` — 12px, `var(--t2)`, `margin-top: 4px`.
+*   **Header Actions**: Primary actions MUST be in `.page-header` on the right. Use React Portals for nested route buttons.
+*   **Body (`.page-body`)**: Scrollable area, padding `32px 36px 48px`.
+*   **App Shell**: `min-height: 100dvh` (NOT `100vh`), sidebar `height: 100dvh`.
 
-### 5. Chips/Badges
-*   **Base Styles (`.chip`)**: `padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;`
-*   **Variant Styles**: Always pair an opaque background variant with the bold color text (e.g., `background: var(--mint1)` with `color: var(--mint)`). Often includes a tiny colored `5px` dot (`.chip-dot`).
+### 6. Chips/Badges
+*   **Base Styles (`.chip`)**: `padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500;`
+*   **Variant Styles**: Opaque background + bold text (e.g., `background: var(--mint1)` + `color: var(--mint)`). Often includes a 5px colored dot.
 
-### 6. Empty States
-*   **Core Logic**: Use the reusable `<EmptyState title="Title" description="Subtitle" action={<button>Click</button>} />` component rather than hardcoding `.empty-state` logic directly.
-*   **Visual Check**: It should feature a 44px semi-transparent icon, a 15px `600` weight title (`var(--t1)`), a 12px description text (`var(--t2)`), and an optional action button below it.
-*   **Spacing**: Ensure padding of `48px 24px` around the empty state content.
+### 7. Empty States
+*   Use `<EmptyState title="Title" description="Subtitle" action={<button>Click</button>} />`.
+*   Visual: 44px icon, `var(--font-display)` 16px/700 title with `letter-spacing: -0.02em`, 12px description `var(--t2)`, optional action button. Padding `48px 24px`.
 
-### 7. Drawers
-*   **Interaction**: Complex forms or secondary flows (like Uploading, Creating) should use slide-out right-aligned Drawers instead of center Modals or explicit route changes.
-*   **Core Logic**: Use the reusable `<Drawer isOpen={state} onClose={fn} title="Title" footer={<buttons />}>` component. Do NOT manually construct absolute DOM positioning for drawers.
-*   **Backdrop**: Drawers must have a strict `rgba(0, 0, 0, 0.4)` backdrop that dismisses on click or `Escape` key, freezing the body scroll.
-*   **Elevation**: Drawers sit at `z-index: 1000` with `var(--elevated)` backgrounds, left borders (`var(--border)`), and deep shadows (`-12px 0 32px rgba(0,0,0,0.5)`).
+### 8. Drawers
+*   Complex forms or secondary flows use slide-out right-aligned Drawers.
+*   Use `<Drawer isOpen={state} onClose={fn} title="Title" footer={<buttons />}>`.
+*   Backdrop: `rgba(0, 0, 0, 0.4)`, dismisses on click/Escape, freezes body scroll.
+*   Elevation: `z-index: 1000`, `var(--elevated)` background, left border, deep shadow.
 
-### 8. Center Modals
-*   **Interaction**: Focused explicit confirmations (e.g. "Delete Assistant?") or simple mounting logic (e.g. "Mount Collections") should use centered Modals instead of sliding Drawers.
-*   **Core Logic**: Use the reusable `<Modal isOpen={state} onClose={fn} title="Title" description="Description" footer={<buttons />}>` component. Do NOT manually construct `<div className="modal-overlay">` wrappers directly on the page.
-*   **Backdrop**: Uses a `z-index: 1000` React portal overlay `rgba(0,0,0,0.4)` that freezes the body scroll and traps escaping.
-*   **Style**: Modals max out at `400px` to `480px` depending on content density. Visual theme includes `var(--elevated)` background, `var(--r3)` corner radius, and `-16px 0 48px rgba(0,0,0,0.5)` drop shadows.
+### 9. Center Modals
+*   **Use for**: Confirmations, simple mounting logic, short forms.
+*   **Use `<Modal>`**: Never manually construct `<div className="modal-overlay">`.
+*   **Structure** (CSS-driven, no inline styles):
+    *   `.modal-overlay`: Fixed, `rgba(0,0,0,0.6)`, `backdrop-filter: blur(6px)`, fade-in animation.
+    *   `.modal`: `var(--surface)` bg, `var(--borderhi)` border, `var(--r3)` radius, `max-width: 420px`, slide-up animation. **No padding on `.modal` itself** — padding is per-section.
+    *   `.modal-header`: `16px 20px 14px`, border-bottom, flex with title left + close right.
+    *   `.modal-body`: `16px 20px`, scrollable.
+    *   `.modal-footer`: `14px 20px`, border-top, flex-end gap-8.
+    *   `.modal-close`: 28px square, `var(--r)` radius, SVG X icon, hover `var(--hover)`.
+    *   `.modal-title`: `var(--font-display)`, 15px/700, `letter-spacing: -0.02em`.
 
-### 9. Breadcrumbs
-*   **Structure**: Breadcrumbs act as navigation chrome and should be visually lightweight. They must sit directly on the page background (e.g. directly inside `.page-body` or `.page-header`) and should **never** be wrapped inside a `.card` container.
-*   **Style**: Ensure breadcrumbs are positioned above their target content (like tables) without adding visual boxing or border.
+### 10. Section Headers
+*   `.studio-section-title`: `var(--font-body)`, 11px/500, `letter-spacing: 0.04em`, `var(--t2)`. **No `text-transform: uppercase`.**
+
+### 11. Loading States
+*   **App shell**: Branded skeleton with logo + animated progress bar (not "Loading..." text).
+*   **Dashboard**: Skeleton stat cards matching layout while data loads.
+*   **General**: Use CSS `.skeleton-line` with shimmer animation for placeholder content.
+
+### 12. Breadcrumbs
+*   Visually lightweight, sit on page background. **Never** wrap in `.card`.
+*   Position above target content without visual boxing.

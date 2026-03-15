@@ -11,7 +11,7 @@ interface ModalProps {
     maxWidth?: string;
 }
 
-export default function Modal({ isOpen, onClose, title, description, children, footer, maxWidth = '400px' }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, description, children, footer, maxWidth = '420px' }: ModalProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -38,26 +38,26 @@ export default function Modal({ isOpen, onClose, title, description, children, f
     if (!isOpen || !mounted) return null;
 
     return createPortal(
-        <div className="modal-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth, background: 'var(--elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r3)', boxShadow: '0 16px 48px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <h3 className="modal-title" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--t1)', margin: 0 }}>{title}</h3>
-                            {description && <p className="modal-description" style={{ fontSize: '13px', color: 'var(--t2)', marginTop: '4px', marginBottom: 0 }}>{description}</p>}
-                        </div>
-                        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '0 4px' }}>
-                            ×
-                        </button>
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth }}>
+                <div className="modal-header">
+                    <div>
+                        <h3 className="modal-title">{title}</h3>
+                        {description && <p className="modal-description">{description}</p>}
                     </div>
+                    <button className="modal-close" onClick={onClose} aria-label="Close">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
 
-                <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+                <div className="modal-body">
                     {children}
                 </div>
 
                 {footer && (
-                    <div className="modal-actions" style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <div className="modal-footer">
                         {footer}
                     </div>
                 )}

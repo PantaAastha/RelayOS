@@ -228,23 +228,23 @@
 ### Sidebar Knowledge — Three Sub-pages
 
 **1. Sources** (`/knowledge/sources`)
-- [ ] 🔴 Source cards: connection status, last sync, docs count, chunks count, last error
-- [ ] 🔴 Upload new documents (PDF / MD / TXT) — upload lives here, not in Studio
-- [ ] 🔴 "Sync now" action per source
-- [ ] 🔴 Error states are actionable: sync failed → show error detail + retry CTA
+- [x] 🔴 Source cards: connection status, last sync, docs count, chunks count, last error
+- [x] 🔴 Upload new documents (PDF / MD / TXT) — upload lives here, not in Studio
+- [] 🔴 "Sync now" action per source
+- [] 🔴 Error states are actionable: sync failed → show error detail + retry CTA
 
 **2. Ingestion Jobs** (`/knowledge/jobs`)
-- [ ] 🔴 CI-style job list: status chip (queued / running / failed / succeeded), duration, doc/chunk counts
+- [x] 🔴 CI-style job list: status chip (queued / running / failed / succeeded), duration, doc/chunk counts
 - [ ] 🔴 Expandable error logs per job
 - [ ] 🔴 Status chips animate on state transitions
 
 **3. Collections** (`/knowledge/collections`)
 - [ ] 🔴 Collections list: create, edit, delete collections
-- [ ] 🔴 Add documents to a collection
-- [ ] 🔴 See which assistants each collection is mounted to
-- [ ] 🔴 "Mount to assistant" action from collection detail (convenience shortcut — mounting can also be done from Studio)
-- [ ] 🔴 Retrieval enforcement: assistant only retrieves chunks from its mounted collections
-- [ ] 🔴 New schema: `collections`, `collection_documents`, `assistant_collections`
+- [x] 🔴 Add documents to a collection
+- [x] 🔴 See which assistants each collection is mounted to
+- [x] 🔴 "Mount to assistant" action from collection detail (convenience shortcut — mounting can also be done from Studio)
+- [x] 🔴 Retrieval enforcement: assistant only retrieves chunks from its mounted collections
+- [x] 🔴 New schema: `collections`, `collection_documents`, `assistant_collections`
 
 ### Connectors (Deferred to V3)
 - [ ] 🟢 Notion connector
